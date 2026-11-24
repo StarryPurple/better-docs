@@ -13,9 +13,10 @@ Read [references/discovery-checklist.md](references/discovery-checklist.md) for 
 
 Classify the target into one of three starting states before proposing files:
 
-1. **Inception / exploration (idea without a converged plan)**:
-   - If exploration is single-session or disposable, keep outputs in untracked scratch (runtime scratch dir or `.gitignore`d `.agents/scratch/`) and defer bootstrapping until a durable direction exists.
-   - If multi-session evidence gathering or knowledge synthesis must be committed and shared, bootstrap with `feature_notes=true` and `feature_empirical_records=true`.
+1. **Inception / exploration (empty folder or idea only in the developer's head)**:
+   - If the folder is empty or not yet a git repo, do not fail inspection; offer two paths:
+     - **Disposable exploration**: keep rough brainstorming in untracked scratch (runtime scratch dir or `.gitignore`d `.agents/scratch/`) and defer bootstrapping until a direction converges.
+     - **Seed from an idea**: offer to run `git init` (if missing), run the conditional 5-topic grill, scaffold minimal contracts plus an honest 3-line `README.md` stub, and interview the developer to write the first concrete `.agents/notes/proposed/<class>/YYYY-MM-DD-<topic>.md` (or `.agents/records/<study-id>/README.md` when starting with research/auditing). Never put unbuilt ideas into standing `docs/`.
 2. **Greenfield (converged plan, little or no code)**:
    - Never place unimplemented designs or target architecture skeletons inside standing `docs/`.
    - With `feature_notes=true`, place unimplemented specs and architecture plans in `.agents/notes/proposed/<class>/`; keep `docs/` and `README.md` strictly to what exists at `HEAD`, linking to active `proposed/` notes.
@@ -30,7 +31,7 @@ Classify the target into one of three starting states before proposing files:
 
 Inspect the target root without modifying files:
 
-1. Check git state (`git status --short`, current `HEAD` SHA, `.gitmodules`, tracked `.agents/scratch/`).
+1. Check git state (`git rev-parse --is-inside-work-tree`, `git status --short`, current `HEAD` SHA if commits exist, `.gitmodules`, tracked `.agents/scratch/`). Treat a non-git or empty directory cleanly as **Inception** mode.
 2. Inventory existing Markdown files, `AGENTS.md`, `CLAUDE.md`, package/workspace manifests (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`), and existing doc-check scripts.
 3. Detect default-closed gitlinks (`.gitmodules` and recursive child `.gitmodules`). Do not descend into any submodule until the user classifies it as `owned`.
 4. In brownfield mode, run the advisory EN/ZH recall probes from `prose-standard` (`references/recall-batteries.md`) to surface CoT leakage, change narration, and duplicate docs.

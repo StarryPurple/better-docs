@@ -10,23 +10,49 @@ Portable documentation governance for AI-assisted repositories: a fixed five-ski
 
 ## Quick start
 
-1. **Install the skills globally** (symlink or copy into `~/.agents/skills/`):
+1. **Clone once to a machine-local directory** (or use an existing checkout path):
 
 ```sh
-mkdir -p ~/.agents/skills
-for s in doc-bootstrap doc-migrate prose-standard doc-garden doc-verify; do
-  ln -sfn "$(pwd)/skills/$s" "$HOME/.agents/skills/$s"
+git clone <repo-url> "$HOME/.local/share/better-docs"
+```
+
+2. **Link the five skills globally**, then open a new agent session:
+
+```sh
+KIT="$HOME/.local/share/better-docs"
+for root in "$HOME/.agents/skills" "$HOME/.gemini/config/skills"; do
+  mkdir -p "$root"
+  for s in doc-bootstrap doc-migrate prose-standard doc-garden doc-verify; do
+    ln -sfn "$KIT/skills/$s" "$root/$s"
+  done
 done
 ```
 
-2. **Bootstrap a repository**: invoke `doc-bootstrap` in any greenfield or brownfield repo. It grills you on language/i18n, evidence needs, topology, rigor, and gate hooks, then drafts `AGENTS.md`, `docs/AGENTS.md`, `docs-check.conf`, and (for brownfield) a migration manifest.
-3. **Run the deterministic gate**:
+3. **Use inside a target repository**:
+   - Open an agent session in `/path/to/target-repo` and ask it to run `doc-bootstrap` (pointing to `$HOME/.local/share/better-docs` for templates and `gates/check-docs.sh`).
+   - Answer the 5-topic grill (language/i18n first, then evidence, topology, rigor, and gate hooks).
+   - For brownfield repos, review the generated migration manifest, then run `doc-migrate`.
+   - Copy `$HOME/.local/share/better-docs/gates/check-docs.sh` to `scripts/check-docs.sh` in the target repo (so the target repo works standalone) and run:
 
 ```sh
-./gates/check-docs.sh --root /path/to/repo
+./scripts/check-docs.sh
 ```
 
-4. **Verify this repo and the conformance suite**:
+4. **Uninstall**:
+
+```sh
+# Remove global skill symlinks and local kit checkout
+for root in "$HOME/.agents/skills" "$HOME/.gemini/config/skills"; do
+  for s in doc-bootstrap doc-migrate prose-standard doc-garden doc-verify; do
+    rm -f "$root/$s"
+  done
+done
+rm -rf "$HOME/.local/share/better-docs"
+```
+
+To remove `better-docs` from a specific target repo, delete its `docs-check.conf`, `scripts/check-docs.sh`, and any vendored `.agents/skills/{prose-standard,doc-garden,doc-verify}` folders; keep or edit `AGENTS.md`, `docs/`, and `.agents/notes/` as ordinary Markdown.
+
+5. **Verify this repo and the conformance suite**:
 
 ```sh
 ./gates/check-docs.sh
@@ -42,12 +68,7 @@ better-docs/
 ├── docs/
 │   ├── AGENTS.md             # Tier taxonomy, writing rules, wordcount budgets
 │   └── check-spec.md         # Deterministic gate specification (BD001–BD099)
-├── skills/                   # Portable Agent Skills
-│   ├── doc-bootstrap/        # Discovery grill, scaffold, brownfield manifest
-│   ├── doc-migrate/          # Batched brownfield executor
-│   ├── prose-standard/       # EN + ZH anti-slop and CoT-leakage standard
-│   ├── doc-garden/           # Drift, budgets, note supersession, sealing
-│   └── doc-verify/           # Fresh-context subagent / checklist verifier
+├── skills/                   # Portable Agent Skills (doc-bootstrap, doc-migrate, prose-standard, doc-garden, doc-verify)
 ├── templates/                # Composable repo contract templates
 ├── gates/                    # check-docs.sh + conformance fixtures + optional hooks
 └── .agents/notes/            # Dogfooded decision records for this repository
