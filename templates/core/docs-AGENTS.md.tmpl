@@ -1,6 +1,6 @@
 # AGENTS.md — Documentation Standard
 
-This file defines document tiers, language rules, and budgets for `{{PROJECT_NAME}}`. Use `prose-standard` for writing/trimming, `doc-garden` for periodic maintenance, and `doc-verify` for fresh-context fact-checking.
+This file defines document tiers, language rules, and maintenance contracts for `{{PROJECT_NAME}}`. Use `prose-standard` for writing/trimming, `doc-garden` for periodic maintenance, and `doc-verify` for fresh-context fact-checking.
 
 ## Verification authority
 
@@ -12,16 +12,17 @@ This file defines document tiers, language rules, and budgets for `{{PROJECT_NAM
 | Tier | Job | Does NOT belong there |
 | :--- | :--- | :--- |
 | Root `AGENTS.md` | Always-loaded standing orders, layout, and commands (1–3 lines per rule, linking owners) | Worked examples, situational procedures, restated reference docs |
-| `docs/AGENTS.md` | Tier boundaries, fact-to-home map, language mode, and budget policy | Subsystem internals, runbooks, historical decisions |
+| `docs/AGENTS.md` | Tier boundaries, fact-to-home map, language mode, and maintenance rules | Subsystem internals, runbooks, historical decisions |
 | `README.md` | Entry point: what the project does, quick start, layout map | Exhaustive references, changelog/history dumps |
 | `docs/` | Current-state guides, architecture, and reference contracts | Unimplemented plans, failed experiments, review history |
+| `.agents/scratch/` *(gitignored)* | Ephemeral session scratch and review dumps | Anything committed to git (`BD001` fails on tracked files) |
 {{OPTIONAL_NOTES_TIER_ROW}}
 {{OPTIONAL_RECORDS_TIER_ROW}}
-| `.agents/scratch/` *(gitignored)* | Ephemeral session scratch and review dumps | Anything committed to git (`BD001` fails on tracked files) |
 
 ## Language and i18n
 
 - Mode: `{{LANGUAGE_MODE}}` (primary: `{{LANGUAGE_PRIMARY}}`)
+
 {{OPTIONAL_I18N_RULES}}
 
 ## Writing rules
@@ -31,6 +32,4 @@ This file defines document tiers, language rules, and budgets for `{{PROJECT_NAM
 - Preserve complete propositions (actor, timing, modality, negative guarantees, failure modes) when condensing.
 - UTF-8, LF endings, no trailing whitespace, single trailing newline.
 
-## Wordcount budgets
-
-`docs-check.conf` pins ceilings for standing docs. When `BD010` fails: **1. Relocate** to a narrower owner → **2. Condense** without losing propositions → **3. Raise** the ceiling with commit/PR justification.
+{{OPTIONAL_BUDGETS_SECTION}}

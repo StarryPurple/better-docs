@@ -11,6 +11,7 @@ Keep active documentation current, lean, and verified without deleting load-bear
 
 - Read `AGENTS.md`, `docs/AGENTS.md`, and `docs-check.conf` first.
 - Never edit `vendor/`, `node_modules/`, `.agents/notes/archived/`, already-concluded `.agents/records/<study-id>/`, or `submodule_shared=` / `submodule_external=` paths.
+- For `submodule_owned=` paths, garden, validate, commit, and verify push reachability inside the child repo first before updating parent gitlink pins.
 - Never archive toward a quota or by file age; judge every note semantically by future decision value.
 
 ## Maintenance passes
@@ -18,9 +19,9 @@ Keep active documentation current, lean, and verified without deleting load-bear
 Run only the passes applicable to the features enabled in `docs-check.conf`:
 
 ### 1. Deterministic gate & kit-version check
-1. Run `./gates/check-docs.sh --probes --list-budgets` (or the repo's configured gate command).
+1. Run the repo's configured check-gate command with `--probes` (adding `--list-budgets` when `feature_budgets=true`, e.g., `./scripts/check-docs.sh --probes --list-budgets`).
 2. Fix any hard failures (`BD001`–`BD070`), including any accidentally tracked `.agents/scratch/` files (`BD001`).
-3. Compare `kit_version` in `docs-check.conf` against the installed/vendored `better-docs` version; report drift if a newer kit version is available.
+3. Compare `kit_version` in `docs-check.conf` against `<gate-command> --version` (and the local `better-docs` kit checkout if present); report drift if a newer kit version is available.
 
 ### 2. Budget and drift audit
 - For any standing doc approaching or exceeding its `budget=` ceiling (`BD010`), follow the strict order:
@@ -36,15 +37,15 @@ Apply the three-way deletion vs. recording filter and classify each active note 
 - **`implemented/` — delete**: purely mechanical or trivial local edits with no lasting architectural, compatibility, or ownership rule; repair or remove inbound links.
 - **`implemented/` — keep active**: rationale, rejected alternatives, negative guarantees, wire/storage semantics, ownership boundaries, security rules, or reintroduction conditions still guide future work. Update shipped paths/symbols in place if code moved.
 - **`implemented/` — consolidate**: when a newer note fully supersedes an older one, absorb every unique rationale, alternative, consequence, and verification gap into the new owner, repair inbound links, and delete the old note. Keep partial supersessions active and cross-linked.
-- **`implemented/` — archive**: complete substantive historical decisions unlikely to guide future changes. Move to `.agents/notes/archived/<class>/`, repair or retarget inbound links from active prose, and seal with `--seal` when `feature_archive_seal=true`. Never edit sealed files afterward.
-- **`proposed/` — never archive**: either promote to `implemented/` (rewriting to present tense and removing `## Proposal`/`## Plan`/`## Acceptance criteria`), promote to `concluded/` (for empirical studies), move to `rejected/` (only if it prevents a plausible, tempting mistake), or **delete outright** if discarded due to incomplete reasoning.
+- **`implemented/` — archive**: complete substantive historical decisions unlikely to guide future changes. Move to `.agents/notes/archived/<class>/` (along with `.zh.md` and `.i18n.yaml` siblings if `language_mode=i18n-en-zh`), repair or retarget inbound links from active prose, and seal with `<gate-command> --seal` when `feature_archive_seal=true`. Never edit sealed files afterward.
+- **`proposed/` — never archive**: either promote to `implemented/` (rewriting to present tense and removing `## Proposal`/`## Plan`/`## Migration plan`/`## Acceptance criteria`), promote to `concluded/` (for empirical studies), move to `rejected/` (only if it prevents a plausible, tempting mistake), or **delete outright** if discarded due to incomplete reasoning.
 - **`rejected/` — prune**: keep only while the losing option remains a plausible temptation; delete outright once obsolete.
 
 ### 4. Empirical study distillation (`feature_empirical_records=true`)
 For active studies under `.agents/records/<study-id>/`:
 1. Confirm raw large artifacts (checkpoints, huge logs) are stored externally and only curated summaries + provenance pointers remain in git.
-2. When a study reaches a verdict or pivot, distill the takeaway into `.agents/notes/concluded/<class>/YYYY-MM-DD-<topic>.md` linking `.agents/records/<study-id>/`.
-3. Mark `Status: concluded` in `.agents/records/<study-id>/README.md` (freezing the study **in place** so links never break) and seal with `--seal` when `feature_archive_seal=true`.
+2. When a study reaches a verdict or pivot, distill the takeaway into `.agents/notes/concluded/<class>/YYYY-MM-DD-<slug>.md` linking `.agents/records/<study-id>/`.
+3. Change **line 3** of `.agents/records/<study-id>/README.md` (or `index.md`) to exact `Status: concluded` (freezing the study **in place** so links never break). When `language_mode=i18n-en-zh`, update its `.zh.md` counterpart and `.i18n.yaml` (`source_sha256`) **before** sealing; then run `<gate-command> --seal` when `feature_archive_seal=true`.
 4. If a newer experiment overturns an earlier `concluded/` note, create a new `concluded/` note explicitly superseding and cross-linking the older one.
 
 ## Report

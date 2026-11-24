@@ -71,6 +71,6 @@ If no, restate the surviving facts from the repository's vantage at `HEAD` and d
 ## Workflow
 
 1. Read `AGENTS.md`, `docs/AGENTS.md`, and `docs-check.conf` to confirm language mode and excluded paths.
-2. Run advisory recall probes (`./gates/check-docs.sh --probes` or [references/recall-batteries.md](references/recall-batteries.md)), then inspect the densest prose without a pattern in hand.
+2. Run advisory recall probes (the repo's configured check-gate command with `--probes`, or [references/recall-batteries.md](references/recall-batteries.md)), then inspect the densest prose without a pattern in hand.
 3. Judge each hit semantically: classify as `keep`, `trim`, `restate`, `add`, or `relocate`.
 4. Edit owner files before derivative files; run the repo's check gate afterward.

@@ -1,11 +1,11 @@
 ## Submodule ownership (default-closed)
 
-Discovery, doc checks, and edits stop at any gitlink not explicitly listed as `owned` below and in `docs-check.conf`.
+Parent discovery and edits stop at any gitlink not listed as `owned` below and in `docs-check.conf`; the parent check gate stops at every submodule boundary (run each owned child repo's gate independently).
 
 | Submodule path | Classification | Repository identity | Scope / rule |
 | :--- | :--- | :--- | :--- |
-| `{{OWNED_SUBMODULE_PATH}}` | `owned` | `{{REPO_ID}}` | Validated and committed inside the child repo first; verify child commit is pushed (or mark local-only) before bumping the parent gitlink. |
-| `{{SHARED_SUBMODULE_PATH}}` | `shared` | `{{REPO_ID}}` | Read-only to automated doc migration and gardening; record superproject integration notes here, not inside the submodule. |
-| `{{EXTERNAL_SUBMODULE_PATH}}` | `external` | `{{REPO_ID}}` | Upstream third-party repo; never mutate. |
+| `{{OWNED_SUBMODULE_PATH}}` | `owned` | `{{OWNED_REPO_ID}}` | Validated and committed inside the child repo first; verify child commit is pushed (or mark local-only) before bumping the parent gitlink. |
+| `{{SHARED_SUBMODULE_PATH}}` | `shared` | `{{SHARED_REPO_ID}}` | Read-only to automated doc migration and gardening; record superproject integration notes here, not inside the submodule. |
+| `{{EXTERNAL_SUBMODULE_PATH}}` | `external` | `{{EXTERNAL_REPO_ID}}` | Upstream third-party repo; never mutate. |
 
 - Vendor steady-state skills *once* at the superproject root (`.agents/skills/`) if collaborators share them; never duplicate skills down every nested submodule.

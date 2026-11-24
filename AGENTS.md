@@ -7,7 +7,7 @@
 ```text
 skills/       Five portable Agent Skills (.agents/skills/ standard)
 templates/    Composable building blocks instantiated by doc-bootstrap
-gates/        Universal bash gate (check-docs.sh), conformance fixtures, optional hooks
+gates/        Universal bash gate (check-docs.sh), conformance suite (conformance/run.sh), optional linter configs
 docs/         Standing governance contract (docs/AGENTS.md) and gate spec (docs/check-spec.md)
 .agents/      Dogfooded Agent Notes (.agents/notes/); .agents/scratch/ is gitignored and never tracked
 ```
@@ -24,8 +24,8 @@ docs/         Standing governance contract (docs/AGENTS.md) and gate spec (docs/
 ## Standing rules
 
 - **Skills follow the open Agent Skills format**: one level under `skills/<name>/SKILL.md` with YAML frontmatter (`name`, quoted `description`). Keep `skills/` project-agnostic; repo-specific facts stay in `AGENTS.md` and `docs/`.
-- **Check-gate parity**: `docs/check-spec.md` is the single authority for every diagnostic ID (`BD001`–`BD099`), parsing rule, and exit code. Any gate change updates [docs/check-spec.md](docs/check-spec.md) and [gates/conformance/run.sh](gates/conformance/run.sh) in the same commit.
-- **No alien runtimes in the baseline gate**: `gates/check-docs.sh` uses only `bash`, POSIX `awk`, `git`, and `sha256sum` (or `shasum`). Additional repo-native gate engines live in `gates/` only if they pass `gates/conformance/run.sh`.
+- **Check-gate parity**: `docs/check-spec.md` is the single authority for every diagnostic ID (`BD001`–`BD070` hard-fail, `BD901`–`BD903` advisory), parsing rule, and exit code. Any gate change updates [docs/check-spec.md](docs/check-spec.md) and [gates/conformance/run.sh](gates/conformance/run.sh) in the same commit.
+- **No alien runtimes in the baseline gate**: `gates/check-docs.sh` uses only `bash` (>= 4.4), POSIX shell utilities/`awk`, `git` (unless `--no-git`), and `sha256sum` (or `shasum -a 256`) per [docs/check-spec.md](docs/check-spec.md). Additional repo-native gate engines live in `gates/` only if they pass `gates/conformance/run.sh`.
 - **Dogfood every rule**: apply [prose-standard](skills/prose-standard/SKILL.md) to all authored Markdown and comments. Never commit `.agents/scratch/` files. Keep `CLAUDE.md` symlinked to `AGENTS.md` and edit `AGENTS.md` directly.
 - **Notes and archival**: create Agent Notes under `.agents/notes/` only for lasting design rationale not carried by specs or code; follow [.agents/notes/README.md](.agents/notes/README.md). Archived notes under `.agents/notes/archived/` are frozen and sealed in `manifest.sha256`.
 - **Verify before finishing**: run `./gates/check-docs.sh` and `./gates/conformance/run.sh` after changes, and report only checks actually executed.

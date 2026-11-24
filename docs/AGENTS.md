@@ -12,7 +12,7 @@ Every fact belongs in one canonical tier; elsewhere, link to it.
 | `docs/AGENTS.md` | Document tier boundaries, writing rules, and budget policy | Gate parsing internals (→ `docs/check-spec.md`), skill workflows (→ `skills/`) |
 | `README.md` | Newcomer entry point: what the repo ships, install, quick start, layout map | Exhaustive spec contracts (→ `docs/check-spec.md`), decision history (→ `.agents/notes/`) |
 | `docs/check-spec.md` | Authoritative deterministic gate specification: config grammar, parsing rules, diagnostic IDs, exit codes | Editorial style advice (→ `skills/prose-standard/`), migration runbooks (→ `skills/doc-migrate/`) |
-| `skills/<name>/SKILL.md` | Portable, reusable workflows and calibration references | Repo-specific paths, project history, hardcoded repo configs |
+| `skills/<name>/` | Portable, reusable workflows (`SKILL.md`) and calibration references (`references/`) | Repo-specific paths, project history, hardcoded repo configs |
 | `templates/` | Composable starter files instantiated by `doc-bootstrap` | Narrative rationale (→ `.agents/notes/`) |
 | `.agents/notes/` | Durable decision records (`proposed/`, `implemented/`, `rejected/`, `archived/`) | Ephemeral review dumps (→ `.agents/scratch/`), current reference specs (→ `docs/`) |
 | `.agents/scratch/` *(gitignored)* | Ephemeral session scratch, raw LLM reviews, temporary brainstorms | Anything committed to git (`BD001` rejects tracked files here) |
@@ -23,7 +23,7 @@ Every fact belongs in one canonical tier; elsewhere, link to it.
 - **Retrieval surface first**: answer first, inventory then expand, path before concept, one job per slot.
 - **Preserve complete propositions**: keep actor, timing, modality, negative guarantees, ownership, and failure modes when condensing.
 - **No CoT leakage**: delete dead draft citations, PR/session vantage, review choreography, and hype adjectives. Keep every reference resolvable at `HEAD`.
-- **Single-language primary**: all authored docs in this repo are English (`language_mode=single-en`), except bilingual calibration examples inside `skills/prose-standard/references/`.
+- **Single-language primary**: all authored docs in this repo are English (`language_mode=single-en`), except bilingual calibration examples in `skills/prose-standard/references/` and quoted ZH probe/pattern literals in `docs/check-spec.md` and `skills/`.
 - **File hygiene**: UTF-8, LF line endings, no trailing whitespace, exactly one trailing newline.
 
 ## Wordcount budgets

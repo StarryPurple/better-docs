@@ -8,7 +8,7 @@
 | :--- | :--- | :--- |
 | English only | `language_mode=single-en`, `language_primary=en` | International repos or English-first teams. |
 | Chinese only | `language_mode=single-zh`, `language_primary=zh` | Chinese prose with exact English code identifiers. |
-| Split by surface | `language_mode=split-by-surface`, `language_primary=<en\|zh>`, `surface_rule=<glob>\|<locale>\|<owner\|derived>` | Readers prefer Chinese for guides/notes while keeping API specs, contracts, or code comments in English. Rules match top-to-bottom (first match wins); unmatched paths fall back to `language_primary`. |
+| Split by surface | `language_mode=split-by-surface`, `language_primary=<en\|zh>`, `surface_rule=<glob>\|<en\|zh>\|<owner\|derived>` | Readers prefer Chinese for guides/notes while keeping API specs, contracts, or code comments in English. Rules match top-to-bottom (first match wins); unmatched paths fall back to `language_primary`. |
 | Mirrored EN/ZH | `language_mode=i18n-en-zh`, `language_primary=en` | Public or bilingual team repos maintaining `.md` + `.zh.md` + `.i18n.yaml` pairs gated on existence and `source_sha256` freshness. |
 
 ## Topic 2: Epistemic and evidence needs
@@ -34,6 +34,6 @@
 
 ## Topic 5: Check-gate runtime and hooks
 
-- **Baseline**: copy or invoke `gates/check-docs.sh` (universal `bash` baseline; works in any repo).
-- **Repo-native gate** (optional): when the repo already runs a scriptable toolchain (`ts/mjs`, `python`, `rust` `xtask`, `go`), only adopt a repo-native engine if it implements `docs/check-spec.md` and passes `gates/conformance/run.sh`.
+- **Baseline**: copy the `better-docs` kit's `gates/check-docs.sh` to `scripts/check-docs.sh` (universal `bash` baseline; works in any repo).
+- **Repo-native gate** (optional): when the repo already runs a scriptable toolchain (`ts/mjs`, `python`, `rust` `xtask`, `go`), only adopt a repo-native engine if it implements the `better-docs` kit's `docs/check-spec.md` and passes `gates/conformance/run.sh`.
 - **External hooks**: split explicitly into `hook_required=` (fails if missing) and `hook_advisory=` (prints `SKIPPED (not installed)` when absent).

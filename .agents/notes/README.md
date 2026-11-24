@@ -1,10 +1,10 @@
 # Agent Notes
 
-An Agent Note records a durable decision or proposal that affects this repository—the rationale, alternatives rejected, consequences, and verification that code and reference docs do not carry.
+An Agent Note records a durable decision or proposal that affects this repository—the rationale, alternatives rejected, consequences, and verification that code and reference docs do not carry. Exact mechanical rules (`BD030`–`BD033`) are defined in [docs/check-spec.md](../../docs/check-spec.md).
 
 ## Layout and naming
 
-Every active Agent Note encodes two axes in its path: `{lifecycle}/{class}/YYYY-MM-DD-topic.md`.
+Every active Agent Note path uses lowercase kebab-case (`[a-z0-9-]+`) for `{lifecycle}`, `{class}`, and `slug`: `{lifecycle}/{class}/YYYY-MM-DD-slug.md`.
 
 - `proposed/`: reviewed proposals for unbuilt work.
 - `implemented/`: shipped decisions written in present tense and kept current with shipped facts.
@@ -15,20 +15,21 @@ Classes are defined by `note_classes` in [docs-check.conf](../../docs-check.conf
 
 ## Header and required sections
 
-First four lines of every active note:
+First four lines of every active note (line 2 and line 4 must be blank):
 
 ```markdown
 # Agent Note: <title>
 
-Status: <proposed | implemented | rejected — one-line reason>
+Status: proposed
 
 ```
 
-Required `##` sections:
+Exact line-3 `Status:` forms (`BD031`):
+- `proposed/`: `Status: proposed`
+- `implemented/`: `Status: implemented`
+- `rejected/`: `Status: rejected — <non-whitespace reason>` (using U+2014 em-dash; trailing `— <reason>` is rejected on `proposed/` and `implemented/`)
 
-- `proposed/`: `## Problem`, `## Proposal`, `## Alternatives considered`, `## Acceptance criteria`, `## Risks`
-- `implemented/`: `## Problem`, `## Decision`, `## Alternatives considered`, `## Consequences` (bans `## Proposal`, `## Plan`, `## Migration plan`, `## Acceptance criteria`)
-- `rejected/`: `## Problem`, `## Proposal`, `## Alternatives considered`
+Required `##` sections (`BD032`) and forbidden proposal-era headings in `implemented/` (`BD033`) are governed by [docs/check-spec.md](../../docs/check-spec.md).
 
 ## Supersession and deletion filter
 

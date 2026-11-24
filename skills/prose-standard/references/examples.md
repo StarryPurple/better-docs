@@ -10,7 +10,7 @@ Each pair shows a bad passage and its proposition-preserving rewrite.
 
 ### 2. Defensive padding & hype → concrete fact
 - **Bad**: `It is important to note that this powerful and seamless tool makes it easy to validate your docs. In conclusion, simply run it before pushing.`
-- **Good**: `Run ./gates/check-docs.sh before pushing. It exits 1 on broken local links, budget overruns, or malformed Agent Notes.`
+- **Good**: `Run ./scripts/check-docs.sh before pushing. It exits 1 on broken local links, budget overruns, or malformed Agent Notes.`
 
 ### 3. Dead session citation → standalone invariant
 - **Bad**: `Clamp concurrency to 4 (see decision 3 from audit B2; reviewer confirmed this is safe for now).`
@@ -24,13 +24,13 @@ Each pair shows a bad passage and its proposition-preserving rewrite.
 
 ### 5. Chinese ChatGPT-style padding → direct technical Chinese
 - **Bad**: `需要注意的是，这是一个非常强大且无缝的文档检查工具。值得一提的是，它不仅能检查链接，还能确保笔记格式正确。总而言之，建议大家在提交前运行。`
-- **Good**: `提交前运行 ./gates/check-docs.sh。脚本检查本地链接、字数预算和 Agent Note 格式，发现违规返回退出码 1。`
+- **Good**: `提交前运行 ./scripts/check-docs.sh。脚本检查本地链接、字数预算和 Agent Note 格式，发现违规返回退出码 1。`
 
 ### 6. Chinese change narration → current state + rationale link
 - **Bad**: `以前我们把所有实验日志都直接写在 README 里，上一轮评审后决定不再这么做，改为放到新目录中。`
 - **Good**: `实验阶段性记录存放在 .agents/records/<study-id>/，README.md 仅保留当前可复现主线与最佳基线。决策依据见 [2026-11-24-records-boundary.md](.agents/notes/implemented/process/2026-11-24-records-boundary.md)。`
 
 ### 7. Overcorrection trap (DO NOT drop load-bearing clauses)
-- **Original**: `Never run --seal before updating inbound links to the archived note; once sealed, the archive gate rejects any edit to the file.`
-- **Bad trim (loses ordering & consequence)**: `Update inbound links and run --seal.`
-- **Good trim**: `Update inbound links before running --seal; sealed files are immutable and fail BD042 on subsequent edits.`
+- **Original**: `Never run --seal before finalizing edits to the archived note; once sealed, the archive gate rejects any edit to the file.`
+- **Bad trim (loses ordering & consequence)**: `Finalize the archived note and run --seal.`
+- **Good trim**: `Finalize all edits to the archived note before running --seal; sealed files are immutable and fail BD042 on subsequent edits.`

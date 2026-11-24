@@ -1,10 +1,13 @@
 # Optional lychee link-checker configuration.
 # Activate by installing lychee and adding `hook_advisory=lychee` (or `hook_required=lychee`) in docs-check.conf.
+# Auto-discovered by gates/check-docs.sh at `.lychee.toml`, `lychee.toml`, or `gates/optional/lychee.toml`.
 offline = true
+hidden = true
 include_verbatim = false
 exclude_path = [
-  "vendor",
-  "node_modules",
-  ".agents/notes/archived",
-  ".agents/scratch",
+  '(^|/)\.git(/|$)',
+  '(^|/)vendor(/|$)',
+  '(^|/)node_modules(/|$)',
+  '(^|/)\.agents/notes/archived(/|$)',
+  '(^|/)\.agents/scratch(/|$)',
 ]

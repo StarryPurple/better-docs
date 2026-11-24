@@ -2,7 +2,7 @@
 
 Path rules in `docs-check.conf` evaluate top-to-bottom (first match wins); unmatched paths fall back to `language_primary`.
 
-| Path glob | Locale | Role | Rule |
+| Path glob | Locale (`en` \| `zh`) | Role (`owner` \| `derived`) | Rule |
 | :--- | :--- | :--- | :--- |
 | `{{OWNER_GLOB}}` | `en` | `owner` | Canonical technical contracts, schemas, flags, and API invariants. |
 | `{{DERIVED_GLOB}}` | `zh` | `derived` | Reading-oriented guides and notes; link canonical English contracts instead of duplicating specs. |
