@@ -1,0 +1,22 @@
+# Study: {{STUDY_ID}} — {{STUDY_TITLE}}
+
+Status: active
+
+> Non-authoritative temporal evidence record. Current runnable pipeline and baseline live in `docs/`. Large raw artifacts (logs, checkpoints, datasets) remain outside git under external storage.
+
+## Provenance
+
+- **Started**: {{YYYY_MM_DD}}
+- **Base commit / pin**: `{{COMMIT_SHA}}`
+- **External artifact store**: {{EXTERNAL_STORAGE_URI_OR_PATH}}
+- **Permission / retention**: {{PERMISSION_CLEARANCE_AND_EXPIRY_POLICY}}
+
+## Runs and observations
+
+| Date | Run / Source ID | Config / Commit | Observed Outcome | Collaborator Notes / Limits |
+| :--- | :--- | :--- | :--- | :--- |
+| {{YYYY_MM_DD}} | `{{RUN_ID}}` | `{{CONFIG_OR_SHA}}` | {{METRIC_OR_FINDING}} | {{LIMITS_OR_ADVICE}} |
+
+## Closure
+
+When this study finishes or pivots, distill the takeaway into `.agents/notes/concluded/<class>/YYYY-MM-DD-<topic>.md`, change line 3 above to `Status: concluded`, and seal in place with `./gates/check-docs.sh --seal` (when `feature_archive_seal=true`).

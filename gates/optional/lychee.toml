@@ -1,0 +1,10 @@
+# Optional lychee link-checker configuration.
+# Activate by installing lychee and adding `hook_advisory=lychee` (or `hook_required=lychee`) in docs-check.conf.
+offline = true
+include_verbatim = false
+exclude_path = [
+  "vendor",
+  "node_modules",
+  ".agents/notes/archived",
+  ".agents/scratch",
+]

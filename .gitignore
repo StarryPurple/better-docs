@@ -1,0 +1,7 @@
+# Ephemeral session and review scratch — never committed to git.
+.agents/scratch/
+
+# Local OS / editor noise
+.DS_Store
+*.swp
+*~

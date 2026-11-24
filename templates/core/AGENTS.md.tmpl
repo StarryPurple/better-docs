@@ -1,0 +1,26 @@
+# AGENTS.md
+
+{{PROJECT_ONE_LINE_SUMMARY}} Follow [docs/AGENTS.md](docs/AGENTS.md) for documentation tiers, prose standards, and budgets.
+
+## Repository layout
+
+```text
+{{REPO_LAYOUT_TREE}}
+```
+
+## Commands
+
+```sh
+{{BUILD_AND_TEST_COMMANDS}}
+{{DOCS_CHECK_COMMAND}}
+```
+
+## Standing rules
+
+- **Current-state docs only**: update affected `README.md` and `docs/` in the same change as code or behavior edits. Apply `prose-standard` (no CoT leakage, change narration, or defensive filler).
+- **One home per fact**: place every fact in its canonical tier ([docs/AGENTS.md](docs/AGENTS.md)) and link everywhere else.
+- **Ephemeral scratch stays untracked**: keep raw session reviews and brainstorms in `.agents/scratch/` (gitignored; `BD001` rejects tracked scratch files).
+{{OPTIONAL_NOTES_RULE}}
+{{OPTIONAL_EMPIRICAL_RULE}}
+{{OPTIONAL_SUBMODULES_SECTION}}
+- **Verify before finishing**: run relevant tests and `{{DOCS_CHECK_COMMAND}}`; report only commands actually run.

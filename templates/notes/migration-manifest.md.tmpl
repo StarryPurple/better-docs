@@ -1,0 +1,33 @@
+# Agent Note: Documentation Governance Migration
+
+Status: proposed
+
+## Problem
+
+Legacy documentation in this repository suffers from drift, duplicated facts, or mixed historical/current-state prose. This manifest binds every existing doc to an explicit target disposition before `doc-migrate` touches any file.
+
+## Proposal
+
+- **Source HEAD**: `{{SOURCE_HEAD_SHA}}`
+- **Target `docs-check.conf` mode**: `language_mode={{LANGUAGE_MODE}}`, `feature_notes={{FEATURE_NOTES}}`, `feature_empirical_records={{FEATURE_EMPIRICAL_RECORDS}}`, `feature_archive_seal={{FEATURE_ARCHIVE_SEAL}}`
+- **Owned submodules approved**: {{OWNED_SUBMODULES_OR_NONE}}
+
+### Legacy disposition table
+
+| Legacy Path | Action | Destination | Owner / Evidence | Redirect / Compat | Rationale |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `{{LEGACY_PATH}}` | `{{REWRITE\|SPLIT\|MERGE\|EXTRACT_NOTE\|EXTRACT_RECORD\|QUARANTINE\|ARCHIVE\|DELETE\|KEEP}}` | `{{DEST_PATH_OR_DASH}}` | `{{CODE_OR_OWNER}}` | `{{REDIRECT_OR_NONE}}` | {{CONCISE_REASON}} |
+
+## Alternatives considered
+
+- **In-place incremental polish without a manifest**: leaves duplicated facts and unowned legacy files across sessions and risks deleting buried rationale before extraction.
+
+## Acceptance criteria
+
+- All `EXTRACT_NOTE` / `EXTRACT_RECORD` rows land before any `QUARANTINE` / `DELETE` row executes.
+- Rebuilt current-state docs pass `doc-verify` against authoritative code, tests, or named owners.
+- Deterministic gate exits `0` with zero broken relative links and zero tracked `.agents/scratch/` files.
+
+## Risks
+
+- Deleting legacy docs before verifying external links or buried rationale; mitigated by clean-tree preflight, extract-first batching, and explicit user grill on ambiguous files.

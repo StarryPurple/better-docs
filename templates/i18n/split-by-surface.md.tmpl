@@ -1,0 +1,11 @@
+### Split-by-surface ownership (`split-by-surface`)
+
+Path rules in `docs-check.conf` evaluate top-to-bottom (first match wins); unmatched paths fall back to `language_primary`.
+
+| Path glob | Locale | Role | Rule |
+| :--- | :--- | :--- | :--- |
+| `{{OWNER_GLOB}}` | `en` | `owner` | Canonical technical contracts, schemas, flags, and API invariants. |
+| `{{DERIVED_GLOB}}` | `zh` | `derived` | Reading-oriented guides and notes; link canonical English contracts instead of duplicating specs. |
+
+- Keep exact source identifiers, CLI flags, config keys, and file paths verbatim in English on Chinese surfaces.
+- Never silently mix languages within one file; link across surfaces instead.

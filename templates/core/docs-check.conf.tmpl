@@ -1,0 +1,32 @@
+# better-docs gate configuration
+kit_version=0.1.0
+language_mode={{LANGUAGE_MODE}}
+language_primary={{LANGUAGE_PRIMARY}}
+
+# Uncomment for split-by-surface (first-match wins; <glob>|<locale>|<owner|derived>)
+# surface_rule=docs/contracts/**|en|owner
+# surface_rule=docs/guides/**|zh|derived
+
+feature_notes={{FEATURE_NOTES}}
+feature_empirical_records={{FEATURE_EMPIRICAL_RECORDS}}
+feature_archive_seal={{FEATURE_ARCHIVE_SEAL}}
+feature_budgets={{FEATURE_BUDGETS}}
+
+note_classes={{NOTE_CLASSES}}
+# grandfathered_note=.agents/notes/implemented/architecture/YYYY-MM-DD-legacy.md
+
+# Monorepo subtrees holding subtree AGENTS.md files
+# subtree=packages/core
+
+# Recursive submodules (default-closed)
+# submodule_owned=libs/mod|git@github.com:org/mod.git|<starting_sha>|docs,notes
+# submodule_shared=libs/shared
+# submodule_external=third_party/upstream
+
+budget=AGENTS.md:1000
+budget=docs/AGENTS.md:1000
+budget=README.md:800
+
+# hook_required=lychee
+hook_advisory=lychee
+hook_advisory=vale

@@ -1,0 +1,13 @@
+### Mirrored EN/ZH pairing (`i18n-en-zh`)
+
+Every authored English Markdown file `foo.md` pairs with `foo.zh.md` and a sibling sidecar `foo.i18n.yaml`:
+
+```yaml
+source: foo.md
+target: foo.zh.md
+source_sha256: <64-hex-sha256-of-foo.md>
+```
+
+- Update `foo.md` and `foo.zh.md` in the same change so meaning stays synchronized without forcing awkward literal line-count parity.
+- Refresh `source_sha256` only after semantically updating the counterpart (`BD060` fails when `foo.md` changes without updating `foo.i18n.yaml`).
+- Code fences, CLI commands, and identifiers stay identical across both files.
