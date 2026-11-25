@@ -17,11 +17,13 @@
 
 ## Standing rules
 
-- **Current-state docs only**: update affected `README.md` and `docs/` in the same change as code or behavior edits. Apply `prose-standard` (no CoT leakage, change narration, or defensive filler).
+- **Current-state docs only**: update affected `README.md` and current-state `docs/` in the same change as code or behavior edits (see [docs/AGENTS.md](docs/AGENTS.md) for any opt-in non-current-state tiers such as `docs/theory.md` or `ROADMAP.md`). Apply `prose-standard` (no CoT leakage, change narration, or defensive filler).
 - **One home per fact**: place every fact in its canonical tier ([docs/AGENTS.md](docs/AGENTS.md)) and link everywhere else.
 - **Ephemeral scratch stays untracked**: keep raw session reviews and brainstorms in `.agents/scratch/` (gitignored; `BD001` rejects tracked scratch files).
 {{OPTIONAL_NOTES_RULE}}
 {{OPTIONAL_EMPIRICAL_RULE}}
+{{OPTIONAL_THEORY_RULE}}
+{{OPTIONAL_ROADMAP_RULE}}
 - **Verify before finishing**: run relevant tests and `{{DOCS_CHECK_COMMAND}}`; report only commands actually run.
 
 {{OPTIONAL_SUBMODULES_SECTION}}

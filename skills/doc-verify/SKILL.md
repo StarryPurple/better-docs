@@ -11,7 +11,7 @@ Verify finished prose against reality from a **fresh context** so the reviewer c
 
 1. Confirm the target: a page, specific `##` sections, or a list of changed claims. If omitted, ask.
 2. Locate the target repo root, `AGENTS.md`, `docs/AGENTS.md`, and `docs-check.conf`.
-3. Split large pages into bounded review units (one `##` section or claim group per reviewer).
+3. Split large pages into bounded review units (one `##` section or claim group per reviewer). For `docs/theory.md`, run **one whole-page consistency pass first** (symbol definitions, domains, assumption references, and epistemic-status header) before splitting into section units.
 
 ## Execution mode
 
@@ -30,9 +30,9 @@ Read first:
 3. <TARGET_PAGE_PATH> — review only <SECTION_OR_CLAIM_LIST>; read surrounding sections for context only.
 
 Check in strict order:
-1. Facts: verify every command, flag, path, config key, default, exit code, and behavior claim against source code, tests, or primary citations. Re-run read-only terminal commands; run mutating commands only in an isolated scratch directory or verify against source/tests. Flag any claim that cannot be verified and explain why.
+1. Facts: verify every command, flag, path, config key, default, exit code, and behavior claim against source code, tests, or primary citations. Re-run read-only terminal commands; run mutating commands only in an isolated scratch directory or verify against source/tests. For `docs/theory.md`, verify implementation claims against code/tests, verify research/theoretical claims against their stated proof, study, or primary source, accept accurately labeled open hypotheses, and flag unsupported claims explicitly. Flag any claim that cannot be verified and explain why.
 2. Examples: verify every code fence, config snippet, and fixture matches current syntax and passes the repo's check gate or tests.
-3. Structure (fact-to-home): flag any passage that restates a topic owned by another tier/page, violates language_mode / surface_rule, or leaks unshipped plans into current-state docs.
+3. Structure (fact-to-home): flag any passage that restates a topic owned by another tier/page, violates language_mode / surface_rule, or leaks unshipped plans into current-state docs. For `ROADMAP.md`, verify links resolve, flag multi-paragraph spec bloat, and under `i18n-en-zh` check that EN and ZH lines stay synchronized under shared checkboxes.
 4. Job fit: confirm the unit answers its stated lookup target directly, answer-first, with load-bearing facts on scan anchors.
 5. Slop and CoT leakage: flag dead session/draft citations, change narration ("used to", "this PR", "以前", "上一轮"), review choreography, hype/comfort adjectives ("easy", "seamless", "powerful", "强大而灵活"), defensive padding ("需要注意的是", "it is important to note"), binary reframes ("not X, it's Y"), and summary endings.
 

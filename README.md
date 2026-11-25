@@ -5,7 +5,7 @@ Portable documentation governance for AI-assisted repositories: a fixed five-ski
 ## What this repo ships
 
 - **`skills/`**: Five cross-agent skills (`.agents/skills/` standard) for bootstrapping, brownfield migration, EN/ZH anti-slop prose, ongoing gardening, and fresh-context verification.
-- **`templates/`**: Composable building blocks assembled per repo (`AGENTS.md`, `docs/AGENTS.md`, `docs-check.conf`, `.agents/notes/`, `.agents/records/`, i18n, monorepo subtrees, recursive submodules).
+- **`templates/`**: Composable building blocks assembled per repo (`AGENTS.md`, `docs/AGENTS.md`, `docs-check.conf`, `.agents/notes/`, `.agents/records/`, optional `docs/theory.md` and `ROADMAP.md`, i18n, monorepo subtrees, recursive submodules).
 - **`gates/`**: Universal bash check gate ([check-docs.sh](gates/check-docs.sh)) conforming to [docs/check-spec.md](docs/check-spec.md), plus a shared conformance suite ([gates/conformance/run.sh](gates/conformance/run.sh)) and optional linter configs.
 
 ## Quick start

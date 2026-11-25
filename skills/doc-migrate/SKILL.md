@@ -26,27 +26,32 @@ If the manifest is missing or unapproved, stop and route back to `doc-bootstrap`
 
 ## Batched execution order (extract and verify before deleting)
 
-Commit after each batch so rollback and resume stay deterministic. When `language_mode=i18n-en-zh`, create matching `.zh.md` and `.i18n.yaml` files for every active `.md` file added, rewritten, or kept across Batches 1–4 (including active `.agents/notes/` and `.agents/records/` files; vendored `.agents/skills/*`, `AGENTS.md`, `CLAUDE.md`, `*/AGENTS.md`, and `*/CLAUDE.md` are exempt from `BD060`).
+Commit after each batch so rollback and resume stay deterministic. When `language_mode=i18n-en-zh`, create matching `.zh.md` and `.i18n.yaml` files for every active `.md` file added, rewritten, or kept across Batches 1–4 (including active `.agents/notes/` and `.agents/records/` files; vendored `.agents/skills/*`, root `ROADMAP.md`, `AGENTS.md`, `CLAUDE.md`, `*/AGENTS.md`, and `*/CLAUDE.md` are exempt from `BD060`).
 
 ### Batch 1 — Scaffold contracts, gate, and archive manifest
-- Write `AGENTS.md`, `CLAUDE.md -> AGENTS.md`, `docs/AGENTS.md`, optional `<subtree>/AGENTS.md` files (for every configured `subtree=`, satisfying `BD003`), `docs-check.conf`, `.gitignore` (ignoring `.agents/scratch/`), `.agents/notes/` / `.agents/records/` skeletons (if enabled), optional vendored steady-state skills under `.agents/skills/`, and the check gate (`scripts/check-docs.sh` or repo-native gate).
+- Write `AGENTS.md`, `CLAUDE.md -> AGENTS.md`, `docs/AGENTS.md`, optional `<subtree>/AGENTS.md` files (for every configured `subtree=`, satisfying `BD003`), `docs-check.conf`, `.gitignore` (ignoring `.agents/scratch/`), `.agents/notes/` / `.agents/records/` skeletons (if enabled), optional vendored steady-state skills under `.agents/skills/`, the check gate (`scripts/check-docs.sh` or repo-native gate), and matching configs from `gates/optional/` (`lychee.toml`, `vale.ini`, and `vale-styles/`) for any approved built-in hooks (preserving verified existing configs).
 - When `feature_archive_seal=true`, initialize `.agents/notes/archived/manifest.sha256` with `<gate-command> --seal` so `BD040` passes during subsequent batches.
 - Commit batch 1 (do not stage `.agents/scratch/doc-migration.md` when `feature_notes=false`).
 
-### Batch 2 — Extract surviving rationale first (when `feature_notes=true`)
-- Process all `EXTRACT_NOTE` and `EXTRACT_RECORD` rows **before** deleting or moving any legacy source.
-- Write extracted decisions into `.agents/notes/implemented/<class>/` (present tense) or `.agents/notes/rejected/<class>/` (only for plausible, tempting traps).
+### Batch 2 — Extract surviving rationale and falsified theory first
+- Process all `EXTRACT_NOTE`, `EXTRACT_RECORD`, and manifest `FALSIFIED` theory-triage rows **before** deleting or moving any legacy source or rewriting theory.
+- For `FALSIFIED` theory-triage rows, always write falsification rationale to the **exact evidence destination approved in the manifest** (never override an approved durable/external destination with repo notes, and never write `.agents/notes/concluded/` when `feature_empirical_records=false`).
+- When `feature_notes=true`, write `EXTRACT_NOTE` decisions into `.agents/notes/implemented/<class>/` (present tense) or `.agents/notes/rejected/<class>/` (for plausible traps and falsified assumptions routed there by the manifest).
 - For legacy notes whose original alternatives cannot be reconstructed, add their exact relative path to `grandfathered_note=` in `docs-check.conf` rather than inventing alternatives.
 - For empirical/audit evidence (`feature_empirical_records=true`), write curated summaries with provenance pointers into `.agents/records/<study-id>/` and distill conclusions into `.agents/notes/concluded/<class>/`.
 - Apply `prose-standard` to all newly created notes.
 - Commit batch 2.
 
-### Batch 3 — Rebuild and verify canonical current-state docs
+### Batch 3 — Rebuild and verify canonical docs
 - Process all `REWRITE`, `SPLIT`, and `MERGE` rows.
 - Treat legacy prose as a checklist of topics only—never copy AI-slop text forward.
 - Ground every claim in authoritative sources:
   - Code behavior, flags, schemas, and commands → verify against source code, tests, and executed commands.
   - Non-code operational procedures, support commitments, or primary-source surveys → verify against named owners, configs, or primary citations listed in the manifest.
+- When the theory tier is enabled:
+  - If the manifest approves in-repo `docs/theory.md` storage, synthesize surviving working theory from approved `KEEP_THEORY` rows after Batch 2 extractions land, preserve `UNRESOLVED` claims explicitly labeled as open/unresolved, never claim unbuilt theory is shipped in code, and honor the approved `README.md`-linked vs. unlisted-in-`README.md` visibility.
+  - If the manifest approves confidential external/private storage, write or hand off surviving theory to that private destination and omit any in-repo `docs/theory.md` file and public links.
+- When root `ROADMAP.md` is enabled: seed it strictly from approved `Confirmed roadmap seed` rows (or leave it empty); never blindly copy legacy `TODO.md` lines.
 - Apply `prose-standard` throughout.
 - Run `doc-verify` (fresh-context subagent or human-reviewer checklist) on the rebuilt docs and resolve every factual finding.
 - Commit batch 3.

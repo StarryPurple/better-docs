@@ -16,10 +16,10 @@ Classify the target into one of three starting states before proposing files:
 1. **Inception / exploration (empty folder or idea only in the developer's head)**:
    - If the folder is empty or not yet a git repo, do not fail inspection; offer two paths:
      - **Disposable exploration**: keep rough brainstorming in untracked scratch (runtime scratch dir or `.gitignore`d `.agents/scratch/`) and defer bootstrapping until a direction converges.
-     - **Seed from an idea**: offer to run `git init` (if missing), run the conditional 5-topic grill, scaffold minimal contracts plus an honest 3-line `README.md` stub, and interview the developer to write the first concrete `.agents/notes/proposed/<class>/YYYY-MM-DD-<slug>.md` (only when `feature_notes=true`; or `.agents/records/<study-id>/README.md` when `feature_empirical_records=true`; otherwise keep rough plans in `.agents/scratch/`). Never put unbuilt ideas into standing `docs/`.
+     - **Seed from an idea**: offer to run `git init` (if missing), run the conditional 5-topic grill, scaffold minimal contracts plus an honest 3-line `README.md` stub (plus opt-in `docs/theory.md` populated from the theory grill and/or root `ROADMAP.md` seeded with confirmed near-term tasks or left empty when selected), and interview the developer to write the first concrete `.agents/notes/proposed/<class>/YYYY-MM-DD-<slug>.md` (only when `feature_notes=true`; or `.agents/records/<study-id>/README.md` when `feature_empirical_records=true`; otherwise keep rough plans in `.agents/scratch/`). Never put unbuilt feature specs into current-state `docs/`.
 2. **Greenfield (converged plan, little or no code)**:
-   - Never place unimplemented designs or target architecture skeletons inside standing `docs/`.
-   - With `feature_notes=true`, place unimplemented specs and architecture plans in `.agents/notes/proposed/<class>/`; keep `docs/` and `README.md` strictly to what exists at `HEAD`, linking to active `proposed/` notes.
+   - Never place unimplemented feature specs or target code-architecture skeletons inside current-state `docs/` (the opt-in `docs/theory.md` working formulation and root `ROADMAP.md` agreed-task board are explicitly declared non-current-state tiers when enabled).
+   - With `feature_notes=true`, place unagreed or unimplemented feature/architecture proposals in `.agents/notes/proposed/<class>/`; keep `README.md` and current-state `docs/` strictly to what exists at `HEAD`, linking to active `proposed/` notes (and optionally `docs/theory.md` with a working-formulation notice if `README.md` visibility was chosen).
    - With `feature_notes=false`, keep unimplemented plans in untracked `.agents/scratch/` until code exists.
 3. **Brownfield (existing repo with legacy docs or clutter)**:
    - Run **read-only first**. Make zero destructive edits and do not overwrite existing repository contracts during bootstrap—leave contract scaffolding to `doc-migrate` Batch 1 so the working tree stays clean for pre-flight checks.
@@ -43,26 +43,27 @@ Follow [references/grill-protocol.md](references/grill-protocol.md):
 1. Present detected signals and proposed defaults.
 2. **Ask Language & i18n first** (`single-en`, `single-zh`, `split-by-surface`, `i18n-en-zh`).
 3. Grill across the remaining discovery topics, skipping follow-ups that do not apply:
-   - Epistemic / evidence needs (`feature_notes`, `feature_empirical_records`, note classes)
+   - Epistemic, theory, and planning needs (`feature_notes`, `feature_empirical_records`, note classes, opt-in `docs/theory.md` with problem/domain/notation/assumptions/failure criteria/evidence destination/visibility-or-confidentiality, opt-in root `ROADMAP.md` with confirmed seed rows and done conditions)
    - Structure & ownership (`subtree=`, `submodule_owned/shared/external=`, global vs. vendored steady-state skills)
    - Governance rigor (`feature_budgets`, `feature_archive_seal`)
-   - Check-gate runtime (`better-docs` kit's `gates/check-docs.sh` baseline vs. a repo-native gate conforming to `docs/check-spec.md`, plus `hook_required` / `hook_advisory`)
-4. In brownfield mode, also grill the user on every **ambiguous legacy doc** (hidden rationale, uncertain keep vs. archive vs. delete), any **published URL / redirect constraint**, and every **submodule collaborator boundary**.
+   - Check-gate runtime (`better-docs` kit's `gates/check-docs.sh` baseline vs. a repo-native gate conforming to `docs/check-spec.md`, plus approved `hook_required` / `hook_advisory` tools and their config provisioning)
+4. In brownfield mode, also grill the user on every **ambiguous legacy doc** (hidden rationale, uncertain keep vs. archive vs. delete), **mixed legacy theory/assumptions** (surviving vs. falsified vs. shipped vs. unresolved at section/claim level when `docs/theory.md` is enabled), **legacy TODOs** (unconfirmed candidates requiring fresh collaborator agreement before entering `ROADMAP.md`), any **published URL / redirect constraint**, and every **submodule collaborator boundary**.
 
 ### 3. Assemble per-repo contracts
 
 Compile approved answers using the composable building blocks in the `better-docs` kit's `templates/` directory (following the instantiation rules in `templates/README.md`):
 
-- `AGENTS.md` (with `CLAUDE.md -> AGENTS.md` symlink): repo layout, commands, hard standing orders, explicit triggers pointing to `docs/AGENTS.md` and steady-state skills, plus a **Submodule Ownership Table** when submodules exist.
-- `docs/AGENTS.md`: `Tier | Job | Does NOT belong there` table, writing rules, fact-to-home map, `split-by-surface` path ownership (if applicable), and budget policy (if `feature_budgets=true`).
+- `AGENTS.md` (with `CLAUDE.md -> AGENTS.md` symlink): repo layout, commands, hard standing orders (including the human-editable / agent-authorized `ROADMAP.md` rule and `docs/theory.md` pointer when enabled), explicit triggers pointing to `docs/AGENTS.md` and steady-state skills, plus a **Submodule Ownership Table** when submodules exist.
+- `docs/AGENTS.md`: `Tier | Job | Does NOT belong there` table (single canonical home for `docs/theory.md` revision rules and `ROADMAP.md` format/pruning rules when enabled), writing rules, fact-to-home map, `split-by-surface` path ownership (if applicable), and budget policy (if `feature_budgets=true`).
 - Optional `<subtree>/AGENTS.md` files for every configured `subtree=` directory (required by `BD003`).
-- `docs-check.conf`: pinned `kit_version`, language settings, enabled features, `note_classes` (if overriding defaults), `grandfathered_note=` inventory, `subtree=` / `submodule_*=`, `budget=` ceilings (only for existing files when `feature_budgets=true`), and hooks.
+- `docs-check.conf`: pinned `kit_version`, language settings, enabled features, `note_classes` (if overriding defaults), `grandfathered_note=` inventory, `subtree=` / `submodule_*=`, `budget=` ceilings (only for existing files when `feature_budgets=true`), and only approved `hook_required=` / `hook_advisory=` entries.
 - `.gitignore`: ensure `.agents/scratch/` is ignored.
 - Optional `.agents/notes/` and `.agents/records/` skeletons (only when enabled).
+- Optional `docs/theory.md` (populated from the theory grill; omitted from a public git repo if confidential) and root `ROADMAP.md` (seeded with confirmed tasks or left empty) when selected during discovery.
 - Optional vendored steady-state skills (`prose-standard`, `doc-garden`, `doc-verify`) placed *once* at repo/superproject root (`.agents/skills/`) if collaborators need self-contained skills (exempt from `BD060` under `i18n-en-zh`). Never copy `doc-bootstrap` or `doc-migrate` into target repos.
 
 **Write boundary by mode:**
-- **Inception / Greenfield**: write the assembled contracts to disk, copy the gate script (e.g. `scripts/check-docs.sh`), initialize `.agents/notes/archived/manifest.sha256` with `<gate-command> --seal` whenever `feature_archive_seal=true`, and verify the gate exits `0`.
+- **Inception / Greenfield**: write the assembled contracts to disk, copy the gate script (e.g. `scripts/check-docs.sh`) plus matching configs from `gates/optional/` (`lychee.toml`, `vale.ini`, and `vale-styles/`) for any approved built-in hooks (or preserve verified existing configs), initialize `.agents/notes/archived/manifest.sha256` with `<gate-command> --seal` whenever `feature_archive_seal=true`, and verify the gate exits `0`.
 - **Brownfield**: present the proposed contracts in the review summary (do not write them over the repo yet; `doc-migrate` Batch 1 writes and commits them on the migration branch).
 
 ### 4. Output brownfield migration manifest (brownfield only)
@@ -83,6 +84,9 @@ Write only the migration manifest without deleting or rewriting legacy files:
 ```
 
 Allowed `Action` values: `KEEP`, `REWRITE`, `SPLIT`, `MERGE`, `EXTRACT_NOTE` *(requires `feature_notes=true`)*, `EXTRACT_RECORD` *(requires `feature_empirical_records=true`)*, `ARCHIVE` *(requires `feature_notes=true`; moves into `.agents/notes/archived/`)*, `DELETE`. For uncertain legacy docs the user wants to defer, use `KEEP` plus a follow-up item in a `proposed/` note (or an issue / `.agents/scratch/` item when `feature_notes=false`).
+
+  4. Optional **Theory & assumption triage** section (when the theory tier is enabled): pin the approved theory storage/visibility (`docs/theory.md` `README.md`-linked vs. unlisted in `README.md`, or confidential external/private storage), the approved falsification evidence destination, and section/claim-level rows (`Source file + heading | Class (KEEP_THEORY / FALSIFIED / SHIPPED_CODE / UNRESOLVED) | Destination | Evidence`).
+  5. Optional **Confirmed roadmap seed** section (when `ROADMAP.md` is enabled): list only collaborator-confirmed agreed rows and their done conditions (never auto-copy stale legacy `TODO.md` bullets).
 
 ### 5. Stop for approval
 

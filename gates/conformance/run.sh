@@ -560,6 +560,7 @@ language_mode=i18n-en-zh
 language_primary=en
 EOF
 printf '# Hello\n' > "$R9/README.md"
+printf '# Roadmap\n\n- [ ] Implement parser — @alice\n  实现解析器\n' > "$R9/ROADMAP.md"
 printf '# Vendored skill\n' > "$R9/.agents/skills/prose-standard/SKILL.md"
 commit_all "$R9" "missing zh pair"
 assert_fail_with "fail_bd060_missing_pair" "BD060" "$GATE" --root "$R9"
@@ -567,8 +568,69 @@ assert_fail_with "fail_bd060_missing_pair" "BD060" "$GATE" --root "$R9"
 printf '# 你好\n' > "$R9/README.zh.md"
 src_sha="$(hash_file "$R9/README.md")"
 printf 'source: README.md\ntarget: README.zh.md\nsource_sha256: %s   # synced\n' "$src_sha" > "$R9/README.i18n.yaml"
-commit_all "$R9" "valid i18n pair with vendored skill and comment"
-assert_pass "valid_i18n_pair_and_vendored_skill_exempt" "$GATE" --root "$R9"
+commit_all "$R9" "valid i18n pair with vendored skill, root ROADMAP, and comment"
+assert_pass "valid_i18n_pair_and_exemptions" "$GATE" --root "$R9"
+
+mkdir -p "$R9/docs"
+printf '# Nested roadmap\n' > "$R9/docs/ROADMAP.md"
+commit_all "$R9" "nested ROADMAP is not exempt from BD060"
+assert_fail_with "fail_bd060_nested_roadmap_not_exempt" "BD060 docs/ROADMAP.md" "$GATE" --root "$R9"
+rm -f "$R9/docs/ROADMAP.md"
+commit_all "$R9" "remove nested ROADMAP"
+
+printf '# Roadmap\n\n- [x] Implement parser — @alice\n  实现解析器\n' > "$R9/ROADMAP.md"
+commit_all "$R9" "checkbox-only edit on root ROADMAP"
+assert_pass "pass_roadmap_checkbox_edit_no_sidecar" "$GATE" --root "$R9"
+
+# Reject symlinked or gitignored .zh.md and .i18n.yaml
+R9B="$TMP_BASE/bd060_symlink_ignored"
+init_repo "$R9B"
+cat > "$R9B/docs-check.conf" <<'EOF'
+kit_version=0.1.0
+language_mode=i18n-en-zh
+language_primary=en
+EOF
+printf '# Guide\n' > "$R9B/README.md"
+ln -s README.md "$R9B/README.zh.md"
+src_sha="$(hash_file "$R9B/README.md")"
+printf 'source: README.md\ntarget: README.zh.md\nsource_sha256: %s\n' "$src_sha" > "$R9B/README.i18n.yaml"
+commit_all "$R9B" "symlinked zh counterpart"
+assert_fail_with "fail_bd060_symlink_zh" "BD060 README.md" "$GATE" --root "$R9B"
+
+rm -f "$R9B/README.zh.md"
+printf '# 指南\n' > "$R9B/README.zh.md"
+mv "$R9B/README.i18n.yaml" "$R9B/real.yaml"
+ln -s real.yaml "$R9B/README.i18n.yaml"
+commit_all "$R9B" "symlinked sidecar"
+assert_fail_with "fail_bd060_symlink_sidecar" "BD060 README.md" "$GATE" --root "$R9B"
+
+rm -f "$R9B/README.i18n.yaml"
+mv "$R9B/real.yaml" "$R9B/README.i18n.yaml"
+# Ignored .zh.md alone (sidecar tracked)
+git -C "$R9B" rm -q --cached README.zh.md
+printf 'README.zh.md\n' > "$R9B/.gitignore"
+commit_all "$R9B" "ignore zh only"
+assert_fail_with "fail_bd060_gitignored_zh_only" "excluded or gitignored" "$GATE" --root "$R9B"
+
+# Ignored .i18n.yaml alone (.zh.md tracked)
+printf '' > "$R9B/.gitignore"
+git -C "$R9B" add README.zh.md
+git -C "$R9B" rm -q --cached README.i18n.yaml
+printf 'README.i18n.yaml\n' > "$R9B/.gitignore"
+commit_all "$R9B" "ignore sidecar only"
+assert_fail_with "fail_bd060_gitignored_sidecar_only" "i18n sidecar 'README.i18n.yaml' is gitignored" "$GATE" --root "$R9B"
+
+# Wildcard sidecar Guide[1].i18n.yaml ignored beside visible Guide1.i18n.yaml
+printf '' > "$R9B/.gitignore"
+git -C "$R9B" add README.i18n.yaml
+printf '# Bracket guide\n' > "$R9B/Guide[1].md"
+printf '# 括号指南\n' > "$R9B/Guide[1].zh.md"
+g_sha="$(hash_file "$R9B/Guide[1].md")"
+printf 'source: Guide[1].md\ntarget: Guide[1].zh.md\nsource_sha256: %s\n' "$g_sha" > "$R9B/Guide[1].i18n.yaml"
+printf 'source: Guide1.md\ntarget: Guide1.zh.md\nsource_sha256: %s\n' "$g_sha" > "$R9B/Guide1.i18n.yaml"
+printf 'Guide\\[1\\].i18n.yaml\n' > "$R9B/.gitignore"
+commit_all "$R9B" "ignored wildcard sidecar beside visible sibling"
+assert_fail_with "fail_bd060_ignored_wildcard_sidecar" "Guide[1].i18n.yaml" "$GATE" --root "$R9B"
 
 printf '\nUpdated text.\n' >> "$R9/README.md"
 commit_all "$R9" "stale i18n source"
@@ -795,11 +857,12 @@ sed -e 's/{{TITLE}}/Migration/g' \
     -e 's/{{OWNED_SUBMODULES_OR_NONE}}/none/g' \
     -e 's/{{TARGET_TIER_MAP}}/Root + docs/g' \
     -e 's/{{LEGACY_PATH}}/OLD.md/g' \
-    -e 's/{{REWRITE|SPLIT|MERGE|EXTRACT_NOTE|EXTRACT_RECORD|ARCHIVE|DELETE|KEEP}}/DELETE/g' \
+    -e 's/{{REWRITE\\|SPLIT\\|MERGE\\|EXTRACT_NOTE\\|EXTRACT_RECORD\\|ARCHIVE\\|DELETE\\|KEEP}}/DELETE/g' \
     -e 's/{{DEST_PATH_OR_DASH}}/-/g' \
     -e 's/{{CODE_OR_OWNER}}/code/g' \
     -e 's/{{REDIRECT_OR_NONE}}/none/g' \
     -e 's/{{CONCISE_REASON}}/obsolete/g' \
+    -e '/{{OPTIONAL_/d' \
     "$REPO_ROOT/templates/notes/migration-manifest.md.tmpl" > "$R19/.agents/notes/proposed/process/2026-11-24-doc-migration.md"
 sed -e 's/{{TITLE}}/Sample/g' -e 's/{{PROBLEM_STATEMENT}}/P/g' -e 's/{{SHIPPED_REALITY_IN_PRESENT_TENSE}}/D/g' \
     -e 's/{{ALTERNATIVE_1}}/A/g' -e 's/{{WHY_IT_LOST}}/L/g' -e 's/{{WHAT_THE_TRADEOFF_BOUGHT_AND_COST}}/C/g' \
@@ -820,25 +883,98 @@ sed -e 's/{{STUDY_ID}}/2026-11-study/g' -e 's/{{STUDY_TITLE}}/Baseline/g' -e 's/
     -e 's/{{RUN_ID}}/r1/g' -e 's/{{CONFIG_OR_SHA}}/c1/g' -e 's/{{METRIC_OR_FINDING}}/0.9/g' \
     -e 's/{{LIMITS_OR_ADVICE}}/none/g' -e 's/{{DOCS_CHECK_COMMAND}}/.\/scripts\/check-docs.sh/g' \
     "$REPO_ROOT/templates/notes/record-study-README.md.tmpl" > "$R19/.agents/records/2026-11-study/README.md"
+printf '# Docs AGENTS\n' > "$R19/docs/AGENTS.md"
+sed -e 's/{{PROBLEM_STATEMENT_AND_DOMAIN}}/Objective/g' -e 's/{{SYMBOL}}/x/g' \
+    -e 's/{{DEFINITION}}/State/g' -e 's/{{CONSTRAINTS}}/finite/g' \
+    -e 's/{{ASSUMPTION_NAME}}/Bound/g' -e 's/{{ASSUMPTION_STATEMENT}}/Bounded/g' \
+    -e 's/{{FALSIFICATION_CRITERION}}/Diverges/g' \
+    -e 's/{{HYPOTHESIS_NAME}}/Monotone/g' -e 's/{{TESTABLE_HYPOTHESIS}}/Decreases loss/g' \
+    -e 's/{{MECHANISM_DECOMPOSITION_DERIVATIONS_AND_INVARIANTS}}/Two-stage solver/g' \
+    -e 's/{{THEORY_EVIDENCE_OWNER}}/Alice/g' \
+    -e 's/{{THEORY_EVIDENCE_DESTINATION}}/.agents\/notes\/concluded\/ and .agents\/records\//g' \
+    "$REPO_ROOT/templates/research/theory.md.tmpl" > "$R19/docs/theory.md"
+sed -e 's/{{PROJECT_NAME}}/Demo/g' \
+    -e 's/{{OPTIONAL_ACTIVE_TASKS}}/- [ ] Build solver — @alice — [note](.agents\/notes\/proposed\/process\/2026-11-24-doc-migration.md)/g' \
+    -e 's/{{OPTIONAL_UP_NEXT_TASKS}}/- [ ] Run benchmark/g' \
+    "$REPO_ROOT/templates/planning/ROADMAP.md.tmpl" > "$R19/ROADMAP.md"
 "$GATE" --root "$R19" --seal >/dev/null
 commit_all "$R19" "instantiated templates"
 assert_pass "pass_live_template_instantiation" "$GATE" --root "$R19"
+if ! grep -rn '{{' "$R19" --exclude-dir=.git >/dev/null 2>&1; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+  printf 'PASS  %s\n' "pass_live_template_no_leftover_placeholders"
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  printf 'FAIL  %s\n' "pass_live_template_no_leftover_placeholders"
+fi
+
+# Lean bilingual scaffold with core contracts, theory + pair, and ownerless bilingual ROADMAP
+R19B="$TMP_BASE/lean_bilingual_scaffold"
+init_repo "$R19B"
+mkdir -p "$R19B/docs"
+sed -e 's/{{LANGUAGE_MODE}}/i18n-en-zh/g' -e 's/{{LANGUAGE_PRIMARY}}/en/g' \
+    -e 's/{{FEATURE_NOTES}}/false/g' -e 's/{{FEATURE_EMPIRICAL_RECORDS}}/false/g' \
+    -e 's/{{FEATURE_ARCHIVE_SEAL}}/false/g' -e 's/{{FEATURE_BUDGETS}}/false/g' \
+    "$REPO_ROOT/templates/core/docs-check.conf.tmpl" > "$R19B/docs-check.conf"
+sed -e 's/{{PROJECT_ONE_LINE_SUMMARY}}/Lean demo./g' -e 's/{{REPO_LAYOUT_TREE}}/docs\//g' \
+    -e 's/{{BUILD_AND_TEST_COMMANDS}}/true/g' -e 's/{{DOCS_CHECK_COMMAND}}/.\/scripts\/check-docs.sh/g' \
+    -e 's/{{OPTIONAL_THEORY_RULE}}/- **Theoretical architecture**: read [docs\/theory.md](docs\/theory.md) before changing model assumptions./g' \
+    -e 's/{{OPTIONAL_ROADMAP_RULE}}/- **Short-term roadmap**: [ROADMAP.md](ROADMAP.md) holds agreed tasks only; agents require explicit authorization to add rows./g' \
+    -e '/{{OPTIONAL_/d' \
+    "$REPO_ROOT/templates/core/AGENTS.md.tmpl" > "$R19B/AGENTS.md"
+sed -e 's/{{PROJECT_NAME}}/LeanDemo/g' -e 's/{{DELIVERABLE_AUTHORITY}}/code and tests/g' \
+    -e 's/{{NON_CODE_AUTHORITIES}}/proofs/g' -e 's/{{LANGUAGE_MODE}}/i18n-en-zh/g' \
+    -e 's/{{LANGUAGE_PRIMARY}}/en/g' \
+    -e 's/{{OPTIONAL_THEORY_TIER_ROW}}/| `docs\/theory.md` | Living theoretical formulation | Shipped code status |/g' \
+    -e 's/{{OPTIONAL_ROADMAP_TIER_ROW}}/| `ROADMAP.md` | Agreed near-term tasks | Unagreed proposals |/g' \
+    -e '/{{OPTIONAL_/d' \
+    "$REPO_ROOT/templates/core/docs-AGENTS.md.tmpl" > "$R19B/docs/AGENTS.md"
+printf '\n' >> "$R19B/docs/AGENTS.md"
+cat "$REPO_ROOT/templates/i18n/i18n-en-zh.md.tmpl" >> "$R19B/docs/AGENTS.md"
+sed -e 's/{{PROBLEM_STATEMENT_AND_DOMAIN}}/Lean objective/g' -e 's/{{SYMBOL}}/y/g' \
+    -e 's/{{DEFINITION}}/Output/g' -e 's/{{CONSTRAINTS}}/real/g' \
+    -e 's/{{ASSUMPTION_NAME}}/Convex/g' -e 's/{{ASSUMPTION_STATEMENT}}/Convex loss/g' \
+    -e 's/{{FALSIFICATION_CRITERION}}/Non-convex counterexample/g' \
+    -e 's/{{HYPOTHESIS_NAME}}/Convergent/g' -e 's/{{TESTABLE_HYPOTHESIS}}/Converges/g' \
+    -e 's/{{MECHANISM_DECOMPOSITION_DERIVATIONS_AND_INVARIANTS}}/Single-stage/g' \
+    -e 's/{{THEORY_EVIDENCE_OWNER}}/Bob/g' \
+    -e 's/{{THEORY_EVIDENCE_DESTINATION}}/issue tracker and git commits/g' \
+    "$REPO_ROOT/templates/research/theory.md.tmpl" > "$R19B/docs/theory.md"
+printf '# 理论架构\n' > "$R19B/docs/theory.zh.md"
+th_sha="$(hash_file "$R19B/docs/theory.md")"
+printf 'source: docs/theory.md\ntarget: docs/theory.zh.md\nsource_sha256: %s\n' "$th_sha" > "$R19B/docs/theory.i18n.yaml"
+sed -e 's/{{PROJECT_NAME}}/LeanDemo/g' \
+    -e 's/{{OPTIONAL_ACTIVE_TASKS}}/- [ ] Verify bound\n  验证上界/g' \
+    -e '/{{OPTIONAL_UP_NEXT_TASKS}}/d' \
+    "$REPO_ROOT/templates/planning/ROADMAP.md.tmpl" > "$R19B/ROADMAP.md"
+commit_all "$R19B" "lean bilingual scaffold"
+assert_pass "pass_lean_bilingual_scaffold" "$GATE" --root "$R19B"
+if ! grep -rn '{{' "$R19B" --exclude-dir=.git >/dev/null 2>&1; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+  printf 'PASS  %s\n' "pass_lean_bilingual_no_leftover_placeholders"
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  printf 'FAIL  %s\n' "pass_lean_bilingual_no_leftover_placeholders"
+fi
 
 # ---------------------------------------------------------------------------
-# Case 14: lychee / vale hook config discovery and missing-config behavior
+# Case 14: lychee / vale hook config discovery, file filtering, warnings, CWD
 # ---------------------------------------------------------------------------
 MOCK_BIN="$TMP_BASE/mock_bin"
 mkdir -p "$MOCK_BIN"
 MOCK_LOG="$TMP_BASE/mock_hooks.log"
 cat > "$MOCK_BIN/lychee" <<'EOF'
 #!/usr/bin/env bash
-printf 'lychee:%s\n' "$*" >> "$MOCK_HOOK_LOG"
-exit 0
+printf 'lychee:%s|%s\n' "$(pwd -P)" "$*" >> "$MOCK_HOOK_LOG"
+exit "${MOCK_LYCHEE_RC:-0}"
 EOF
 cat > "$MOCK_BIN/vale" <<'EOF'
 #!/usr/bin/env bash
-printf 'vale:%s\n' "$*" >> "$MOCK_HOOK_LOG"
-exit 0
+printf 'vale:%s|%s\n' "$(pwd -P)" "$*" >> "$MOCK_HOOK_LOG"
+if [[ -n "${MOCK_VALE_OUT:-}" ]]; then
+  printf '%s\n' "$MOCK_VALE_OUT"
+fi
+exit "${MOCK_VALE_RC:-0}"
 EOF
 chmod +x "$MOCK_BIN/lychee" "$MOCK_BIN/vale"
 
@@ -846,50 +982,104 @@ R20="$TMP_BASE/hook_config_discovery"
 init_repo "$R20"
 cat > "$R20/docs-check.conf" <<'EOF'
 kit_version=0.1.0
+feature_notes=true
+feature_empirical_records=true
+submodule_external=libs/ext
 hook_advisory=lychee
 hook_advisory=vale
 EOF
+mkdir -p "$R20/libs/ext" "$R20/.agents/records/2026-11-done"
 printf '# Clean\n' > "$R20/README.md"
-commit_all "$R20" "hook config discovery base"
+printf '# Study\n\nStatus: concluded\n\nSeamless old text.\n' > "$R20/.agents/records/2026-11-done/README.md"
+# Create a real initialized child git repository registered as a 160000 gitlink
+init_repo "$R20/libs/ext"
+printf '# External broken\n\n[broken](nope.md)\n' > "$R20/libs/ext/bad.md"
+commit_all "$R20/libs/ext" "external child broken doc"
+EXT_SHA="$(git -C "$R20/libs/ext" rev-parse HEAD)"
+cat > "$R20/.gitmodules" <<'EOF'
+[submodule "ext"]
+	path = libs/ext
+	url = https://example.com/ext.git
+EOF
+git -C "$R20" add docs-check.conf README.md .agents/records/2026-11-done/README.md .gitmodules
+git -C "$R20" update-index --add --cacheinfo 160000,"$EXT_SHA",libs/ext
+git -C "$R20" commit -q -m "hook config discovery base with real gitlink"
 
+# Run from outside R20 (/tmp) to prove CWD isolation and active-file filtering
 : > "$MOCK_LOG"
 assert_pass_with "pass_vale_advisory_no_config_skipped" "SKIPPED (no vale config found)" \
-  env PATH="$MOCK_BIN:$PATH" MOCK_HOOK_LOG="$MOCK_LOG" "$GATE" --root "$R20"
-if grep -Fq "lychee:--no-progress --offline --root-dir $R20 $R20" "$MOCK_LOG" && ! grep -Fq "vale:" "$MOCK_LOG"; then
+  bash -c 'cd /tmp && PATH="'"$MOCK_BIN"':$PATH" MOCK_HOOK_LOG="'"$MOCK_LOG"'" "'"$GATE"'" --root "'"$R20"'"'
+if grep -Fq "lychee:$R20|--no-progress --offline --root-dir $R20 " "$MOCK_LOG" \
+  && grep -Fq "$R20/README.md" "$MOCK_LOG" \
+  && ! grep -Fq "libs/ext/bad.md" "$MOCK_LOG" \
+  && ! grep -Fq "vale:" "$MOCK_LOG"; then
   PASS_COUNT=$((PASS_COUNT + 1))
-  printf 'PASS %s\n' "pass_lychee_default_args_without_config"
+  printf 'PASS  %s\n' "pass_lychee_cwd_isolated_and_filtered"
 else
   FAIL_COUNT=$((FAIL_COUNT + 1))
-  printf 'FAIL %s (log=%s)\n' "pass_lychee_default_args_without_config" "$(cat "$MOCK_LOG")"
+  printf 'FAIL  %s (log=%s)\n' "pass_lychee_cwd_isolated_and_filtered" "$(cat "$MOCK_LOG")"
 fi
 
 cat > "$R20/docs-check.conf" <<'EOF'
 kit_version=0.1.0
+feature_notes=true
+feature_empirical_records=true
+submodule_external=libs/ext
 hook_required=vale
 EOF
-assert_fail_with "fail_bd070_vale_required_no_config" "BD070" \
+assert_fail_with "fail_bd070_vale_required_no_config" "has no config" \
   env PATH="$MOCK_BIN:$PATH" MOCK_HOOK_LOG="$MOCK_LOG" "$GATE" --root "$R20"
 
+# Config discovery precedence: gates/optional < plain root < root dotfile
 mkdir -p "$R20/gates/optional"
 printf 'offline = true\n' > "$R20/gates/optional/lychee.toml"
 printf 'MinAlertLevel = warning\n' > "$R20/gates/optional/vale.ini"
 cat > "$R20/docs-check.conf" <<'EOF'
 kit_version=0.1.0
+feature_notes=true
+feature_empirical_records=true
+submodule_external=libs/ext
 hook_required=lychee
 hook_required=vale
 EOF
 : > "$MOCK_LOG"
 assert_pass "pass_hooks_discover_gates_optional" \
   env PATH="$MOCK_BIN:$PATH" MOCK_HOOK_LOG="$MOCK_LOG" "$GATE" --root "$R20"
-if grep -Fq "lychee:--no-progress --offline --root-dir $R20 --config $R20/gates/optional/lychee.toml $R20" "$MOCK_LOG" \
-  && grep -Fq "vale:--config $R20/gates/optional/vale.ini $R20" "$MOCK_LOG"; then
+if grep -Fq "lychee:$R20|--no-progress --offline --root-dir $R20 --config $R20/gates/optional/lychee.toml " "$MOCK_LOG" \
+  && grep -Fq "vale:$R20|--config $R20/gates/optional/vale.ini --output=line $R20/README.md" "$MOCK_LOG" \
+  && ! grep -Fq "2026-11-done" <(grep "^vale:" "$MOCK_LOG") \
+  && ! grep -Fq "libs/ext/bad.md" "$MOCK_LOG"; then
   PASS_COUNT=$((PASS_COUNT + 1))
-  printf 'PASS %s\n' "pass_hooks_optional_config_args"
+  printf 'PASS  %s\n' "pass_hooks_optional_config_and_vale_excludes"
 else
   FAIL_COUNT=$((FAIL_COUNT + 1))
-  printf 'FAIL %s (log=%s)\n' "pass_hooks_optional_config_args" "$(cat "$MOCK_LOG")"
+  printf 'FAIL  %s (log=%s)\n' "pass_hooks_optional_config_and_vale_excludes" "$(cat "$MOCK_LOG")"
 fi
 
+# Vale exit 126 with valid config reports execution failure, not missing config
+assert_fail_with "fail_bd070_vale_exit_126_not_missing_config" "required hook 'vale' failed" \
+  env PATH="$MOCK_BIN:$PATH" MOCK_HOOK_LOG="$MOCK_LOG" MOCK_VALE_RC=126 "$GATE" --root "$R20"
+
+# Vale warning-only (exit 0 + --output=line) surfaces BD902 even when vale is required
+assert_pass_with "pass_vale_warning_surfaced_as_bd902" "BD902 vale README.md:3:9:BetterDocs.SlopEN:warn" \
+  env PATH="$MOCK_BIN:$PATH" MOCK_HOOK_LOG="$MOCK_LOG" MOCK_VALE_OUT="$R20/README.md:3:9:BetterDocs.SlopEN:warn" "$GATE" --root "$R20"
+
+# Plain root lychee.toml / vale.ini beat gates/optional/*
+printf 'offline = true\n' > "$R20/lychee.toml"
+printf 'MinAlertLevel = warning\n' > "$R20/vale.ini"
+: > "$MOCK_LOG"
+assert_pass "pass_hooks_prefer_plain_root_over_optional" \
+  env PATH="$MOCK_BIN:$PATH" MOCK_HOOK_LOG="$MOCK_LOG" "$GATE" --root "$R20"
+if grep -Fq -- "--config $R20/lychee.toml" "$MOCK_LOG" \
+  && grep -Fq -- "--config $R20/vale.ini" "$MOCK_LOG"; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+  printf 'PASS  %s\n' "pass_hooks_plain_root_precedence"
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  printf 'FAIL  %s (log=%s)\n' "pass_hooks_plain_root_precedence" "$(cat "$MOCK_LOG")"
+fi
+
+# Root dotfiles .lychee.toml / .vale.ini beat plain root
 printf 'offline = true\n' > "$R20/.lychee.toml"
 printf 'MinAlertLevel = warning\n' > "$R20/.vale.ini"
 : > "$MOCK_LOG"
@@ -898,10 +1088,142 @@ assert_pass "pass_hooks_prefer_root_dotfiles" \
 if grep -Fq -- "--config $R20/.lychee.toml" "$MOCK_LOG" \
   && grep -Fq -- "--config $R20/.vale.ini" "$MOCK_LOG"; then
   PASS_COUNT=$((PASS_COUNT + 1))
-  printf 'PASS %s\n' "pass_hooks_root_dotfile_precedence"
+  printf 'PASS  %s\n' "pass_hooks_root_dotfile_precedence"
 else
   FAIL_COUNT=$((FAIL_COUNT + 1))
-  printf 'FAIL %s (log=%s)\n' "pass_hooks_root_dotfile_precedence" "$(cat "$MOCK_LOG")"
+  printf 'FAIL  %s (log=%s)\n' "pass_hooks_root_dotfile_precedence" "$(cat "$MOCK_LOG")"
+fi
+
+# Empty Vale-eligible set (only concluded record exists): checks prerequisites first, then skips execution
+R20E="$TMP_BASE/hook_empty_vale_set"
+init_repo "$R20E"
+mkdir -p "$R20E/.agents/records/2026-11-done"
+cat > "$R20E/docs-check.conf" <<'EOF'
+kit_version=0.1.0
+feature_notes=true
+feature_empirical_records=true
+hook_required=vale
+EOF
+printf '# Study\n\nStatus: concluded\n\nSeamless old text.\n' > "$R20E/.agents/records/2026-11-done/README.md"
+commit_all "$R20E" "concluded record only"
+assert_fail_with "fail_bd070_empty_vale_set_still_checks_config" "has no config" \
+  env PATH="$MOCK_BIN:$PATH" MOCK_HOOK_LOG="$MOCK_LOG" "$GATE" --root "$R20E"
+printf 'MinAlertLevel = warning\n' > "$R20E/.vale.ini"
+: > "$MOCK_LOG"
+assert_pass "pass_empty_vale_set_skips_execution" \
+  env PATH="$MOCK_BIN:$PATH" MOCK_HOOK_LOG="$MOCK_LOG" "$GATE" --root "$R20E"
+if ! grep -Fq "vale:" "$MOCK_LOG"; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+  printf 'PASS  %s\n' "pass_empty_vale_set_did_not_invoke_vale"
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  printf 'FAIL  %s (log=%s)\n' "pass_empty_vale_set_did_not_invoke_vale" "$(cat "$MOCK_LOG")"
+fi
+
+# Real lychee literal-path regression (glob metacharacters in filename)
+if command -v lychee >/dev/null 2>&1; then
+  R20L="$TMP_BASE/lychee_glob_literal"
+  init_repo "$R20L"
+  cat > "$R20L/docs-check.conf" <<'EOF'
+kit_version=0.1.0
+hook_required=lychee
+EOF
+  printf 'Guide1.md\n' > "$R20L/.gitignore"
+  printf '# Clean bracket file\n' > "$R20L/Guide[1].md"
+  printf '# Ignored broken sibling\n\n[broken](missing.md)\n' > "$R20L/Guide1.md"
+  commit_all "$R20L" "clean bracket file beside ignored broken sibling"
+  assert_pass "pass_real_lychee_literal_bracket_clean" "$GATE" --root "$R20L"
+  printf '# Broken bracket file\n\n[broken](missing.md)\n' > "$R20L/Guide[1].md"
+  printf '# Ignored clean sibling\n' > "$R20L/Guide1.md"
+  assert_fail_with "fail_real_lychee_literal_bracket_broken" "BD070 lychee" "$GATE" --root "$R20L"
+fi
+
+# ---------------------------------------------------------------------------
+# Case 15: --seal atomic write failure, non-regular manifest, staging exclusion
+# ---------------------------------------------------------------------------
+R21="$TMP_BASE/seal_write_failure"
+init_repo "$R21"
+mkdir -p "$R21/.agents/notes/archived/architecture" "$R21/.agents/notes/archived/.manifest.sha256.tmp.example"
+cat > "$R21/docs-check.conf" <<'EOF'
+kit_version=0.1.0
+feature_notes=true
+feature_archive_seal=true
+EOF
+printf '# Archived\n' > "$R21/.agents/notes/archived/architecture/2026-01-01-a.md"
+printf '# Nested report\n' > "$R21/.agents/notes/archived/.manifest.sha256.tmp.example/report.md"
+printf 'stale staging\n' > "$R21/.agents/notes/archived/.manifest.sha256.tmp.stale"
+"$GATE" --root "$R21" --seal >/dev/null
+commit_all "$R21" "initial sealed archive"
+if ! grep -Fq ".manifest.sha256.tmp.stale" "$R21/.agents/notes/archived/manifest.sha256" \
+  && grep -Fq ".agents/notes/archived/.manifest.sha256.tmp.example/report.md" "$R21/.agents/notes/archived/manifest.sha256"; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+  printf 'PASS  %s\n' "seal_ignores_direct_staging_tmp_and_seals_nested_dir"
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  printf 'FAIL  %s\n' "seal_ignores_direct_staging_tmp_and_seals_nested_dir"
+fi
+ORIG_MANIFEST="$(cat "$R21/.agents/notes/archived/manifest.sha256")"
+printf '# Archived B\n' > "$R21/.agents/notes/archived/architecture/2026-01-02-b.md"
+chmod 555 "$R21/.agents/notes/archived"
+assert_fail_with "fail_seal_unwritable_dir_bd040" "BD040" "$GATE" --root "$R21" --seal
+chmod 755 "$R21/.agents/notes/archived"
+if [[ "$(cat "$R21/.agents/notes/archived/manifest.sha256")" == "$ORIG_MANIFEST" ]]; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+  printf 'PASS  %s\n' "seal_write_failure_preserved_prior_manifest"
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  printf 'FAIL  %s\n' "seal_write_failure_preserved_prior_manifest"
+fi
+
+# Directory at manifest.sha256 must fail BD043 and stay empty
+R21D="$TMP_BASE/seal_manifest_dir"
+init_repo "$R21D"
+mkdir -p "$R21D/.agents/notes/archived/manifest.sha256" "$R21D/.agents/notes/archived/architecture"
+cat > "$R21D/docs-check.conf" <<'EOF'
+kit_version=0.1.0
+feature_notes=true
+feature_archive_seal=true
+EOF
+printf '# Archived\n' > "$R21D/.agents/notes/archived/architecture/2026-01-01-a.md"
+assert_fail_with "fail_seal_directory_manifest_bd043" "BD043" "$GATE" --root "$R21D" --seal
+if [[ -z "$(ls -A "$R21D/.agents/notes/archived/manifest.sha256")" ]]; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+  printf 'PASS  %s\n' "seal_did_not_write_into_manifest_directory"
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  printf 'FAIL  %s\n' "seal_did_not_write_into_manifest_directory"
+fi
+
+# Directory introduced at manifest.sha256 at mv replacement time (post-validation TOCTOU)
+R21R="$TMP_BASE/seal_manifest_dir_race"
+init_repo "$R21R"
+mkdir -p "$R21R/.agents/notes/archived/architecture" "$TMP_BASE/race_bin"
+cat > "$R21R/docs-check.conf" <<'EOF'
+kit_version=0.1.0
+feature_notes=true
+feature_archive_seal=true
+EOF
+printf '# Archived\n' > "$R21R/.agents/notes/archived/architecture/2026-01-01-a.md"
+REAL_MV="$(command -v mv)"
+cat > "$TMP_BASE/race_bin/mv" <<EOF
+#!/usr/bin/env bash
+for arg in "\$@"; do
+  if [[ "\$arg" == "--help" ]]; then
+    exec "$REAL_MV" "\$@"
+  fi
+done
+mkdir -p "$R21R/.agents/notes/archived/manifest.sha256"
+exec "$REAL_MV" "\$@"
+EOF
+chmod +x "$TMP_BASE/race_bin/mv"
+assert_fail_with "fail_seal_post_validation_dir_race_bd040" "BD040" \
+  env PATH="$TMP_BASE/race_bin:$PATH" "$GATE" --root "$R21R" --seal
+if [[ -z "$(ls -A "$R21R/.agents/notes/archived/manifest.sha256")" ]]; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+  printf 'PASS  %s\n' "seal_race_did_not_write_into_manifest_directory"
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  printf 'FAIL  %s\n' "seal_race_did_not_write_into_manifest_directory"
 fi
 
 printf '\nConformance summary: %d passed, %d failed\n' "$PASS_COUNT" "$FAIL_COUNT"

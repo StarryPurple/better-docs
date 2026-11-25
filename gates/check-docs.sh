@@ -924,7 +924,13 @@ if [[ "$FEATURE_ARCHIVE_SEAL" == "true" ]]; then
         fail "BD043" "$rel" "symlinks are forbidden inside sealed archive scope"
         continue
       fi
-      [[ "$rel" == ".agents/notes/archived/AGENTS.md" || "$rel" == "$MANIFEST_REL" ]] && continue
+      case "$rel" in
+        .agents/notes/archived/AGENTS.md|"$MANIFEST_REL") continue ;;
+        .agents/notes/archived/.manifest.sha256.tmp.*)
+          sub_tmp="${rel#.agents/notes/archived/.manifest.sha256.tmp.}"
+          [[ "$sub_tmp" != */* ]] && continue
+          ;;
+      esac
       [[ -f "$entry" ]] && DISK_SEALED["$rel"]="$(hash_file "$entry")"
     done < <(find "$ARCHIVE_DIR" -mindepth 1 \( -type f -o -type l \) | LC_ALL=C sort)
   fi
@@ -948,10 +954,12 @@ if [[ "$FEATURE_ARCHIVE_SEAL" == "true" ]]; then
     fi
   fi
 
-  # Parse current manifest.sha256 (only if not a symlink)
+  # Parse current manifest.sha256 (only if regular non-symlink file)
   declare -A CUR_MANIFEST=()
   if [[ -L "$MANIFEST_ABS" ]]; then
     : # Already failed BD043 above
+  elif [[ -e "$MANIFEST_ABS" && ! -f "$MANIFEST_ABS" ]]; then
+    fail "BD043" "$MANIFEST_REL" "archive manifest must be a regular file"
   elif [[ -f "$MANIFEST_ABS" ]]; then
     mlno=0
     while IFS= read -r mline || [[ -n "$mline" ]]; do
@@ -1008,12 +1016,29 @@ if [[ "$FEATURE_ARCHIVE_SEAL" == "true" ]]; then
 
   if [[ "$SEAL_MODE" -eq 1 ]]; then
     if [[ "$BASE_REF_FAILED" -eq 0 && "$FAILURES" -eq "$seal_pre_failures" ]]; then
-      mkdir -p "$ARCHIVE_DIR"
-      {
-        for sp in "${!DISK_SEALED[@]}"; do
-          printf '%s  %s\n' "${DISK_SEALED[$sp]}" "$sp"
-        done
-      } | LC_ALL=C sort -k1.67 > "$MANIFEST_ABS"
+      if [[ -L "$MANIFEST_ABS" || ( -e "$MANIFEST_ABS" && ! -f "$MANIFEST_ABS" ) ]]; then
+        fail "BD043" "$MANIFEST_REL" "archive manifest destination must be a regular file"
+      elif ! mkdir -p "$ARCHIVE_DIR" 2>/dev/null; then
+        fail "BD040" "$MANIFEST_REL" "failed to create archive directory '.agents/notes/archived'"
+      else
+        tmp_manifest="$(mktemp "$ARCHIVE_DIR/.manifest.sha256.tmp.XXXXXX" 2>/dev/null || true)"
+        seal_replaced=0
+        if [[ -n "$tmp_manifest" ]] && {
+          for sp in "${!DISK_SEALED[@]}"; do
+            printf '%s  %s\n' "${DISK_SEALED[$sp]}" "$sp"
+          done
+        } | LC_ALL=C sort -k1.67 > "$tmp_manifest" 2>/dev/null; then
+          if mv --help 2>&1 | grep -Fq -- '--no-target-directory'; then
+            mv -T -f "$tmp_manifest" "$MANIFEST_ABS" 2>/dev/null && [[ -f "$MANIFEST_ABS" && ! -L "$MANIFEST_ABS" ]] && seal_replaced=1
+          else
+            [[ ! -d "$MANIFEST_ABS" && ! -L "$MANIFEST_ABS" ]] && mv -f "$tmp_manifest" "$MANIFEST_ABS" 2>/dev/null && [[ -f "$MANIFEST_ABS" && ! -L "$MANIFEST_ABS" ]] && seal_replaced=1
+          fi
+        fi
+        if [[ "$seal_replaced" -ne 1 ]]; then
+          [[ -n "$tmp_manifest" ]] && rm -f "$tmp_manifest" 2>/dev/null || true
+          fail "BD040" "$MANIFEST_REL" "failed to write archive manifest atomically"
+        fi
+      fi
     fi
   else
     for sp in "${!DISK_SEALED[@]}"; do
@@ -1060,18 +1085,33 @@ done
 # 10. i18n-en-zh pairing check (BD060)
 # ---------------------------------------------------------------------------
 if [[ "$LANGUAGE_MODE" == "i18n-en-zh" ]]; then
+  declare -A ACTIVE_MD_SET=()
+  for rel_file in "${ACTIVE_MD_FILES[@]}"; do
+    ACTIVE_MD_SET["$rel_file"]=1
+  done
+
   for rel_file in "${ACTIVE_MD_FILES[@]}"; do
     case "$rel_file" in
-      *.zh.md|AGENTS.md|CLAUDE.md|*/AGENTS.md|*/CLAUDE.md|.agents/skills/*) continue ;;
+      *.zh.md|AGENTS.md|CLAUDE.md|*/AGENTS.md|*/CLAUDE.md|ROADMAP.md|.agents/skills/*) continue ;;
     esac
     stem="${rel_file%.md}"
     zh_rel="${stem}.zh.md"
     sidecar_rel="${stem}.i18n.yaml"
-    if [[ ! -f "$ROOT/$zh_rel" ]]; then
+    if [[ -L "$ROOT/$zh_rel" ]]; then
+      fail "BD060" "$rel_file" "Chinese counterpart '$zh_rel' must be a regular non-symlink file"
+    elif [[ ! -f "$ROOT/$zh_rel" ]]; then
       fail "BD060" "$rel_file" "missing Chinese counterpart '$zh_rel'"
+    elif [[ -z "${ACTIVE_MD_SET[$zh_rel]:-}" ]]; then
+      fail "BD060" "$rel_file" "Chinese counterpart '$zh_rel' is excluded or gitignored"
     fi
-    if [[ ! -f "$ROOT/$sidecar_rel" ]]; then
+    if [[ -L "$ROOT/$sidecar_rel" ]]; then
+      fail "BD060" "$rel_file" "i18n sidecar '$sidecar_rel' must be a regular non-symlink file"
+      continue
+    elif [[ ! -f "$ROOT/$sidecar_rel" ]]; then
       fail "BD060" "$rel_file" "missing i18n sidecar '$sidecar_rel'"
+      continue
+    elif [[ "$IN_GIT" -eq 1 && "$(git -C "$ROOT" -c core.quotePath=false ls-files --cached --others --exclude-standard -- ":(literal)$sidecar_rel")" != "$sidecar_rel" ]]; then
+      fail "BD060" "$rel_file" "i18n sidecar '$sidecar_rel' is gitignored"
       continue
     fi
     recorded_sha="$(LC_ALL=C awk '
@@ -1154,54 +1194,116 @@ find_hook_config() {
   return 1
 }
 
-run_hook() {
-  local tool="$1"
+escape_lychee_glob() {
+  local s="$1"
+  if [[ "$s" != *[*?\[\]]* ]]; then
+    printf '%s' "$s"
+    return
+  fi
+  local out="" i ch
+  for ((i = 0; i < ${#s}; i++)); do
+    ch="${s:i:1}"
+    case "$ch" in
+      '*') out+='[*]' ;;
+      '?') out+='[?]' ;;
+      '[') out+='[[]' ;;
+      ']') out+='[]]' ;;
+      *)   out+="$ch" ;;
+    esac
+  done
+  printf '%s' "$out"
+}
+
+LYCHEE_FILES=()
+VALE_FILES=()
+for rel_file in "${ACTIVE_MD_FILES[@]}"; do
+  LYCHEE_FILES+=("$(escape_lychee_glob "$ROOT/$rel_file")")
+  case "$rel_file" in
+    skills/prose-standard/references/*|.agents/skills/prose-standard/references/*) continue ;;
+  esac
+  is_concluded_record_file "$rel_file" && continue
+  VALE_FILES+=("$ROOT/$rel_file")
+done
+
+invoke_hook() {
+  local mode="$1"
+  local tool="$2"
   local cfg=""
+  local hook_out=""
+  local rc=0
+
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    if [[ "$mode" == "required" ]]; then
+      fail "BD070" "$tool" "required hook '$tool' is not installed on PATH"
+    else
+      advise "BD902" "$tool" "SKIPPED (not installed)"
+    fi
+    return
+  fi
+
   case "$tool" in
     lychee)
-      if cfg="$(find_hook_config "$ROOT" ".lychee.toml" "lychee.toml" "gates/optional/lychee.toml")"; then
-        lychee --no-progress --offline --root-dir "$ROOT" --config "$cfg" "$ROOT" >/dev/null 2>&1
+      [[ "${#LYCHEE_FILES[@]}" -eq 0 ]] && return
+      cfg="$(find_hook_config "$ROOT" ".lychee.toml" "lychee.toml" "gates/optional/lychee.toml" || true)"
+      if [[ -n "$cfg" ]]; then
+        (cd "$ROOT" && lychee --no-progress --offline --root-dir "$ROOT" --config "$cfg" "${LYCHEE_FILES[@]}") >/dev/null 2>&1 || rc=$?
       else
-        lychee --no-progress --offline --root-dir "$ROOT" "$ROOT" >/dev/null 2>&1
+        (cd "$ROOT" && lychee --no-progress --offline --root-dir "$ROOT" "${LYCHEE_FILES[@]}") >/dev/null 2>&1 || rc=$?
+      fi
+      if [[ "$rc" -ne 0 ]]; then
+        if [[ "$mode" == "required" ]]; then
+          fail "BD070" "lychee" "required hook 'lychee' failed"
+        else
+          advise "BD902" "lychee" "advisory hook 'lychee' reported warnings"
+        fi
       fi
       ;;
     vale)
-      if cfg="$(find_hook_config "$ROOT" ".vale.ini" "vale.ini" "gates/optional/vale.ini")"; then
-        vale --config "$cfg" "$ROOT" >/dev/null 2>&1
-      else
-        return 126
+      cfg="$(find_hook_config "$ROOT" ".vale.ini" "vale.ini" "gates/optional/vale.ini" || true)"
+      if [[ -z "$cfg" ]]; then
+        if [[ "$mode" == "required" ]]; then
+          fail "BD070" "vale" "required hook 'vale' has no config (.vale.ini, vale.ini, or gates/optional/vale.ini)"
+        else
+          advise "BD902" "vale" "SKIPPED (no vale config found)"
+        fi
+        return
+      fi
+      [[ "${#VALE_FILES[@]}" -eq 0 ]] && return
+      hook_out="$((cd "$ROOT" && vale --config "$cfg" --output=line "${VALE_FILES[@]}") 2>&1)" || rc=$?
+      if [[ -n "$hook_out" ]]; then
+        while IFS= read -r hline; do
+          [[ -z "$hline" ]] && continue
+          hline="${hline#"$ROOT/"}"
+          advise "BD902" "vale" "$hline"
+        done <<< "$hook_out"
+      fi
+      if [[ "$rc" -ne 0 ]]; then
+        if [[ "$mode" == "required" ]]; then
+          fail "BD070" "vale" "required hook 'vale' failed"
+        else
+          advise "BD902" "vale" "advisory hook 'vale' reported warnings"
+        fi
       fi
       ;;
-    *) "$tool" "$ROOT" >/dev/null 2>&1 ;;
+    *)
+      (cd "$ROOT" && "$tool" "$ROOT") >/dev/null 2>&1 || rc=$?
+      if [[ "$rc" -ne 0 ]]; then
+        if [[ "$mode" == "required" ]]; then
+          fail "BD070" "$tool" "required hook '$tool' failed"
+        else
+          advise "BD902" "$tool" "advisory hook '$tool' reported warnings"
+        fi
+      fi
+      ;;
   esac
 }
 
 for h in "${HOOKS_REQUIRED[@]}"; do
-  if ! command -v "$h" >/dev/null 2>&1; then
-    fail "BD070" "$h" "required hook '$h' is not installed on PATH"
-  else
-    rc=0
-    run_hook "$h" || rc=$?
-    if [[ "$h" == "vale" && "$rc" -eq 126 ]]; then
-      fail "BD070" "$h" "required hook 'vale' has no config (.vale.ini, vale.ini, or gates/optional/vale.ini)"
-    elif [[ "$rc" -ne 0 ]]; then
-      fail "BD070" "$h" "required hook '$h' failed"
-    fi
-  fi
+  invoke_hook "required" "$h"
 done
 
 for h in "${HOOKS_ADVISORY[@]}"; do
-  if ! command -v "$h" >/dev/null 2>&1; then
-    advise "BD902" "$h" "SKIPPED (not installed)"
-  else
-    rc=0
-    run_hook "$h" || rc=$?
-    if [[ "$h" == "vale" && "$rc" -eq 126 ]]; then
-      advise "BD902" "$h" "SKIPPED (no vale config found)"
-    elif [[ "$rc" -ne 0 ]]; then
-      advise "BD902" "$h" "advisory hook '$h' reported warnings"
-    fi
-  fi
+  invoke_hook "advisory" "$h"
 done
 
 if [[ "$FAILURES" -gt 0 ]]; then

@@ -29,6 +29,11 @@ Run only the passes applicable to the features enabled in `docs-check.conf`:
   2. **Condense** prose via `prose-standard` while preserving every factual proposition.
   3. **Raise** the ceiling only when required facts genuinely need the space, with justification in the commit/PR.
 - Cross-check commands, flags, file paths, and package lists in `AGENTS.md` and `docs/` against current source and tests. Update stale facts in place.
+- When `docs/theory.md` is present: keep its epistemic-status header accurate, rewrite revised assumptions cleanly in place without change narration, and verify overturned hypotheses record their falsification rationale in the repo's configured evidence destination before deleting or replacing them.
+- When root `ROADMAP.md` is present:
+  - Use promoted `implemented/` or `concluded/` notes (when `feature_notes=true`, regardless of recency) strictly as evidence *leads*—verify each row's actual done condition before ticking `[x]`.
+  - Delete checked `[x]` rows at milestone or cycle close; delete open `[ ]` rows **only** on explicit collaborator cancellation or supersession (age, a broken link, or a similar note title is never sufficient).
+  - Verify linked paths resolve and bounce multi-paragraph spec bloat to `.agents/notes/proposed/` (when `feature_notes=true`) or issue threads; never add new unagreed rows without explicit collaborator authorization.
 - Check `i18n-en-zh` sidecars (when enabled) for stale `source_sha256` entries (`BD060`) and sync counterparts semantically before refreshing hashes.
 
 ### 3. Agent Note supersession, consolidation, and archival (`feature_notes=true`)
@@ -39,7 +44,7 @@ Apply the three-way deletion vs. recording filter and classify each active note 
 - **`implemented/` — consolidate**: when a newer note fully supersedes an older one, absorb every unique rationale, alternative, consequence, and verification gap into the new owner, repair inbound links, and delete the old note. Keep partial supersessions active and cross-linked.
 - **`implemented/` — archive**: complete substantive historical decisions unlikely to guide future changes. Move to `.agents/notes/archived/<class>/` (along with `.zh.md` and `.i18n.yaml` siblings if `language_mode=i18n-en-zh`), repair or retarget inbound links from active prose, and seal with `<gate-command> --seal` when `feature_archive_seal=true`. Never edit sealed files afterward.
 - **`proposed/` — never archive**: either promote to `implemented/` (rewriting to present tense and removing `## Proposal`/`## Plan`/`## Migration plan`/`## Acceptance criteria`), promote to `concluded/` (for empirical studies), move to `rejected/` (only if it prevents a plausible, tempting mistake), or **delete outright** if discarded due to incomplete reasoning.
-- **`rejected/` — prune**: keep only while the losing option remains a plausible temptation; delete outright once obsolete.
+- **`rejected/` — prune**: keep while the losing option remains a plausible temptation OR while it is the sole preserved falsification rationale for an overturned premise in `docs/theory.md`; delete outright once obsolete and superseded.
 
 ### 4. Empirical study distillation (`feature_empirical_records=true`)
 For active studies under `.agents/records/<study-id>/`:

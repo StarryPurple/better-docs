@@ -47,7 +47,7 @@ If no, restate the surviving facts from the repository's vantage at `HEAD` and d
 3. **Change narration on current-state surfaces**: `"used to"`, `"no longer"`, `"previously"`, `"the old X"`, `"以前"`, `"不再"`, `"旧版"`, `"本版"`. State present behavior; express regression pins as present-tense counterfactuals (`"without X, Y happens"`).
 4. **Review choreography**: `"rejected in review"`, `"Codex suggested"`, `"round 2"`, `"评审通过"`, `"上一轮评审"`. Keep only the surviving decision or caveat as plain fact.
 5. **Defensive reviewer justification**: `"this cast is safe because it simply..."`, `"需要注意的是..."`, `"值得一提的是..."`. State the concrete invariant, or delete if code shows it.
-6. **Derivation and control-flow narration**: `"first we X, then we Y"`, test walkthroughs, proofs of obvious branches. Keep only non-obvious invariants or contracts.
+6. **Derivation and control-flow narration**: `"first we X, then we Y"`, test walkthroughs, proofs of obvious branches. Keep only non-obvious invariants, contracts, or load-bearing mathematical proofs/derivations.
 7. **Hedges and hype/comfort adjectives**: `"probably fine"`, `"should suffice"`, `"easy"`, `"simple"`, `"just"`, `"powerful"`, `"seamless"`, `"robust"`, `"简单来说"`, `"非常强大"`, `"总而言之"`. Replace with observable behavior, concrete limits, or a `TODO`.
 8. **Unintended mixed-language residue**: untranslated authoring fragments leaking into a single-language surface (e.g., stray Chinese notes in an English doc, or vice versa), except explicit code identifiers and declared bilingual glosses.
 
@@ -60,13 +60,15 @@ If no, restate the surviving facts from the repository's vantage at `HEAD` and d
 - Runtime old/new state transitions (`"the old connection drains before the new one accepts"`).
 - External standard citations (`RFC 9110 §10.1.5`).
 - Instrumental `"used to"` (`"the key used to sign tokens"`).
+- Load-bearing mathematical proofs and formal derivations (e.g., in `docs/theory.md` or formal specs).
+- Agreed future-tense task checkboxes in root `ROADMAP.md` and explicit working hypotheses in `docs/theory.md` (governed by their tier rows in `docs/AGENTS.md`).
 
 ## Language-mode rules
 
 - `single-en`: direct, active technical English; no binary contrasts (`"not X, it's Y"`), no summary endings.
 - `single-zh`: direct, active technical Chinese; keep exact English code symbols, CLI flags, and file paths verbatim; ban ChatGPT-style Chinese padding (`"需要注意的是"`, `"值得一提的是"`, `"不仅如此"`, `"总而言之"`, `"本质上来说"`).
 - `split-by-surface`: honor `surface_rule=` in `docs-check.conf` (first match wins, fallback to `language_primary`); do not duplicate canonical facts across languages—link the owning surface.
-- `i18n-en-zh`: keep both `.md` and `.zh.md` natural and idiomatic in their respective languages; update `.i18n.yaml` `source_sha256` only when semantic content is genuinely synchronized.
+- `i18n-en-zh`: keep both `.md` and `.zh.md` natural and idiomatic in their respective languages; update `.i18n.yaml` `source_sha256` only when semantic content is genuinely synchronized. Root `ROADMAP.md` is exempt from `BD060`; follow the repo's `docs/AGENTS.md` roadmap format rule.
 
 ## Workflow
 

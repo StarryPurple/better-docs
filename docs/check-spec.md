@@ -18,7 +18,7 @@ This document is the single authority for every deterministic check implemented 
 | `--config <path>` | Path to config file (default: `<root>/docs-check.conf`); requires a non-empty argument. |
 | `--ci` | CI enforcement mode: requires a git worktree and `--base-ref` (or `BETTER_DOCS_BASE_REF`) resolving to a commit distinct from `HEAD` (`BD040`). Incompatible with `--seal` and `--no-git` (exit `2`). |
 | `--base-ref <ref>` | Baseline git ref for append-only archive seal checks (default outside `--ci`: `HEAD`); requires a non-empty argument (exit `2` if empty). An explicitly supplied unresolvable ref fails `BD040` and blocks `--seal` from rewriting `manifest.sha256`. |
-| `--seal` | Verify all existing seals and baseline append-only integrity (`BD040`–`BD043`); if no archive seal errors occurred, rewrite `.agents/notes/archived/manifest.sha256` sorted by path (`LC_ALL=C sort -k1.67`) including newly archived files and concluded study files. Incompatible with `--ci` (exit `2`). |
+| `--seal` | Verify all existing seals and baseline append-only integrity (`BD040`–`BD043`); if no archive seal errors occurred, atomically rewrite `.agents/notes/archived/manifest.sha256` (stage via exclusive temp file `.agents/notes/archived/.manifest.sha256.tmp.*`, sorted by path via `LC_ALL=C sort -k1.67`, then replace via `mv -T -f` when supported or validated `mv -f` fallback on non-GNU `mv`; non-regular destinations fail `BD043` and any write error preserves the prior manifest and fails `BD040`). Incompatible with `--ci` (exit `2`). |
 | `--probes` | Also emit advisory EN/ZH lexical CoT/slop recall diagnostics (`BD901`); never changes exit code. |
 | `--list-budgets` | Also print current token usage (`ok`/`OVER`/`MISS`) for every configured `budget=` entry during the check run (enforces `BD010` only when `feature_budgets=true`). |
 | `--no-git` | Run without `git` (disables tracked-scratch `BD001`, baseline `BD041`, and `.gitmodules` `BD903` checks). Incompatible with `--ci` (exit `2`). |
@@ -58,8 +58,8 @@ Line-oriented `key=value` file:
 | `submodule_shared` | list | Normalized repo-relative gitlink path (read-only) | empty |
 | `submodule_external` | list | Normalized repo-relative gitlink path (read-only) | empty |
 | `budget` | list | `<normalized-repo-relative-path>:<positive-int>` | empty |
-| `hook_required` | list | Executable name on `PATH`. `lychee` runs as `lychee --no-progress --offline --root-dir <root> [--config <cfg>] <root>` (auto-discovering `.lychee.toml`, `lychee.toml`, or `gates/optional/lychee.toml` under `<root>`). `vale` runs as `vale --config <cfg> <root>` (auto-discovering `.vale.ini`, `vale.ini`, or `gates/optional/vale.ini` under `<root>`); missing config fails `BD070` for required hooks or skips (`BD902`) for advisory hooks. Other tools run as `<tool> <root>`. | empty |
-| `hook_advisory` | list | Executable name on `PATH` (same invocation and config-discovery contract as `hook_required`) | empty |
+| `hook_required` | list | Executable name on `PATH`. Prerequisites are checked in order (binary on `PATH`, then `vale` repo config); if the filtered file set is empty after prerequisite checks, execution is skipped. Built-in hooks run from `<root>` over the filtered active Markdown set (respecting default-closed submodules and exclusions): `lychee` runs as `lychee --no-progress --offline --root-dir <root> [--config <cfg>] <glob-escaped-active-files...>` (auto-discovering `.lychee.toml`, `lychee.toml`, or `gates/optional/lychee.toml` in order; escaping `*`, `?`, `[`, `]` so filenames match literally); `vale` runs as `vale --config <cfg> --output=line <vale-files...>` (auto-discovering `.vale.ini`, `vale.ini`, or `gates/optional/vale.ini` in order; excluding `prose-standard/references/` and concluded `.agents/records/`), emitting non-empty alert lines as `BD902` advisories and failing `BD070` on non-zero exit (`error`-level alerts or runtime failure) or missing config. Custom hooks run from `<root>` as `<tool> <root>` and own their own exclusions. | empty |
+| `hook_advisory` | list | Executable name on `PATH` (same invocation, file-filtering, and config-discovery contract as `hook_required`; missing binary/config or non-zero exit emits `BD902` only) | empty |
 
 ---
 
@@ -96,14 +96,14 @@ Line-oriented `key=value` file:
 - Manifest path: `.agents/notes/archived/manifest.sha256`.
 - Format: unique lines of `<64-lowercase-hex-sha256>  <repo-relative-path>` (two literal spaces, standard `sha256sum` format), written sorted by path starting at byte offset 67 (`LC_ALL=C sort -k1.67`) by `--seal`.
 - Sealed scope:
-  - All regular files under `.agents/notes/archived/` except `.agents/notes/archived/AGENTS.md` and `.agents/notes/archived/manifest.sha256`.
+  - All regular files under `.agents/notes/archived/` except `.agents/notes/archived/AGENTS.md`, `.agents/notes/archived/manifest.sha256`, and direct-child staging files `.agents/notes/archived/.manifest.sha256.tmp.<suffix>` (files inside nested directories matching that prefix remain sealed).
   - When `feature_empirical_records=true`, all regular files inside any `.agents/records/<study-id>/` directory whose `README.md` (or `index.md` if `README.md` is absent) has exact `Status: concluded` on line 3.
 - Symlinks anywhere under `.agents/notes/archived/` or `.agents/records/` (including the directories themselves, `AGENTS.md`, `manifest.sha256`, and study files) and non-normalized paths in `manifest.sha256` are rejected (`BD043`).
 - Raw file bytes are hashed via stdin (`sha256sum < file` or `shasum -a 256 < file`, no CRLF/LF rewriting).
 
 ### `i18n-en-zh` pairing format (`BD060`)
-- Applies to active `.md` files except `*.zh.md`, `AGENTS.md`, `CLAUDE.md`, `*/AGENTS.md`, `*/CLAUDE.md`, and `.agents/skills/*`.
-- Each in-scope source `<stem>.md` (including active `.agents/notes/` and `.agents/records/` files) requires `<stem>.zh.md` and `<stem>.i18n.yaml` containing an unquoted `source_sha256: <64-hex>` line (trailing whitespace and `#` inline comments ignored) matching the raw-byte SHA-256 digest of `<stem>.md`.
+- Applies to active `.md` files except `*.zh.md`, `AGENTS.md`, `CLAUDE.md`, `*/AGENTS.md`, `*/CLAUDE.md`, root `ROADMAP.md`, and `.agents/skills/*`. (Root `ROADMAP.md` is exempt so rapid task updates avoid sidecar churn; its formatting rules live in the repo's `docs/AGENTS.md`.)
+- Each in-scope source `<stem>.md` (including active `.agents/notes/` and `.agents/records/` files) requires an active, regular, non-symlink, non-ignored `<stem>.zh.md` and a regular, non-symlink, non-ignored `<stem>.i18n.yaml` containing an unquoted `source_sha256: <64-hex>` line (trailing whitespace and `#` inline comments ignored) matching the raw-byte SHA-256 digest of `<stem>.md`.
 
 ---
 
@@ -125,19 +125,19 @@ Hard failures (`BD001`–`BD070`) print `<ID> <loc> <message>` to **stderr** (wh
 | `BD031` | Note header | Line 1–4 header violates `# Agent Note: <title>` / blank / exact lifecycle status (`Status: proposed`, `Status: implemented`, `Status: concluded`, or `Status: rejected — <non-whitespace reason>` using U+2014 em-dash) / blank (file must have at least 4 lines), or repeats `Status:` outside fenced code. |
 | `BD032` | Note sections | Missing required `##` sections (`proposed`: Problem, Proposal, Alternatives considered, Acceptance criteria, Risks; `implemented`: Problem, Decision, Alternatives considered, Consequences; `concluded`: Hypothesis / Question, Evidence, Conclusion, Direction impact, Alternatives considered; `rejected`: Problem, Proposal, Alternatives considered). Notes listed in `grandfathered_note=` are exempt from `## Alternatives considered`. |
 | `BD033` | Note spec-speak | `implemented/` note contains a proposal-era heading (`## Proposal`, `## Plan`, `## Migration plan`, `## Acceptance criteria`). |
-| `BD040` | Archive seal / CI | Missing `manifest.sha256` (outside `--seal`), `--ci` invoked without a valid `--base-ref` / `BETTER_DOCS_BASE_REF` distinct from `HEAD`, or an explicitly supplied `--base-ref` cannot resolve to a commit. |
+| `BD040` | Archive seal / CI | Missing `manifest.sha256` (outside `--seal`), atomic `--seal` write failure, `--ci` invoked without a valid `--base-ref` / `BETTER_DOCS_BASE_REF` distinct from `HEAD`, or an explicitly supplied `--base-ref` cannot resolve to a commit. |
 | `BD041` | Archive seal | Baseline manifest entry from `--base-ref` was modified or removed (append-only violation). |
 | `BD042` | Archive seal | Malformed or duplicate manifest line, sealed file digest mismatch against `manifest.sha256`, sealed file missing from `manifest.sha256` (outside `--seal`), or manifest entry missing on disk. |
-| `BD043` | Archive seal | Symlink anywhere in `.agents/notes/archived/` or `.agents/records/` (including directories, `AGENTS.md`, `manifest.sha256`), or non-normalized path in `manifest.sha256`. |
+| `BD043` | Archive seal | Symlink anywhere in `.agents/notes/archived/` or `.agents/records/` (including directories, `AGENTS.md`, `manifest.sha256`), non-regular `manifest.sha256` (e.g., directory), or non-normalized path in `manifest.sha256`. |
 | `BD050` | Hygiene | Trailing whitespace on any line, or missing trailing EOF newline in a non-empty active Markdown file. |
 | `BD051` | Draft marker | Unresolved internal draft marker (`(decision N)`, `(audit XN)`) in prose outside fenced code blocks and inline code spans. |
-| `BD060` | i18n pairing | Under `i18n-en-zh`, an in-scope `.md` file lacks `.zh.md` or `.i18n.yaml`, or `.i18n.yaml` lacks or mismatches `source_sha256`. |
-| `BD070` | Required hook | Executable listed in `hook_required=` is missing from `PATH`, lacks a repo config (`vale`), or exited non-zero. |
+| `BD060` | i18n pairing | Under `i18n-en-zh`, an in-scope `.md` file lacks an active, non-symlink, non-ignored `.zh.md` or `.i18n.yaml`, or `.i18n.yaml` lacks or mismatches `source_sha256`. |
+| `BD070` | Required hook | Executable listed in `hook_required=` is missing from `PATH`, lacks a repo config (`vale`), or exited non-zero (`vale` exits non-zero on `error`-level alerts or runtime errors; `warning`-level alerts emit `BD902` without failing `BD070`). |
 
 ### Advisory diagnostics (exit `0`)
 
 | ID | Category | Condition |
 | :--- | :--- | :--- |
 | `BD901` | Lexical probe | Emitted with `--probes` on active `.md` files (excluding `skills/prose-standard/references/*`, `.agents/skills/prose-standard/references/*`, and concluded `.agents/records/<study-id>/*`) matching EN (`used to`, `this pr`, `previously`, `no longer`, `in conclusion`, `it is worth noting`, `it is important to note`, `seamless`, `seamlessly`, `effortless`) and/or ZH (`以前`, `不再`, `旧版`, `上一轮`, `评审`, `需要注意的是`, `值得一提的是`, `不仅如此`, `总而言之`, `综上所述`) probes outside fences and inline code (both EN and ZH are checked independently on every line). |
-| `BD902` | Advisory hook | Executable listed in `hook_advisory=` is missing (`SKIPPED (not installed)`), lacks a repo config (`vale`: `SKIPPED (no vale config found)`), or exited non-zero (`advisory hook '<tool>' reported warnings`). |
+| `BD902` | Advisory hook | Executable listed in `hook_advisory=` is missing (`SKIPPED (not installed)`), lacks a repo config (`vale`: `SKIPPED (no vale config found)`), emitted warning/alert lines (`vale --output=line`), or exited non-zero (`advisory hook '<tool>' reported warnings`). |
 | `BD903` | Submodule | Emitted in git mode whenever `.gitmodules` contains an unlisted gitlink (`SKIPPED (unlisted gitlink; default-closed)`) or uninitialized gitlink (`SKIPPED (uninitialized)`). |

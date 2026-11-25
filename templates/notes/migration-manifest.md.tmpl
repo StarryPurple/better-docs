@@ -12,6 +12,8 @@ Legacy documentation in this repository suffers from drift, duplicated facts, or
 - Working-tree status: {{WORKING_TREE_STATUS}}
 - Target `docs-check.conf` mode: `language_mode={{LANGUAGE_MODE}}`, `feature_notes={{FEATURE_NOTES}}`, `feature_empirical_records={{FEATURE_EMPIRICAL_RECORDS}}`, `feature_archive_seal={{FEATURE_ARCHIVE_SEAL}}`, `feature_budgets={{FEATURE_BUDGETS}}`
 - Owned submodules approved: {{OWNED_SUBMODULES_OR_NONE}}
+{{OPTIONAL_THEORY_STORAGE_LINE}}
+{{OPTIONAL_THEORY_EVIDENCE_LINE}}
 
 ### Target tier map
 
@@ -23,15 +25,17 @@ Legacy documentation in this repository suffers from drift, duplicated facts, or
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `{{LEGACY_PATH}}` | `{{REWRITE\|SPLIT\|MERGE\|EXTRACT_NOTE\|EXTRACT_RECORD\|ARCHIVE\|DELETE\|KEEP}}` | `{{DEST_PATH_OR_DASH}}` | `{{CODE_OR_OWNER}}` | `{{REDIRECT_OR_NONE}}` | {{CONCISE_REASON}} |
 
+{{OPTIONAL_THEORY_TRIAGE_SECTION}}
+{{OPTIONAL_ROADMAP_SEED_SECTION}}
 ## Alternatives considered
 
 - **In-place incremental polish without a manifest**: leaves duplicated facts and unowned legacy files across sessions and risks deleting buried rationale before extraction.
 
 ## Acceptance criteria
 
-- All `EXTRACT_NOTE` / `EXTRACT_RECORD` rows land before any `ARCHIVE` / `DELETE` row executes.
-- Rebuilt current-state docs pass `doc-verify` against authoritative code, tests, or named owners.
-- Deterministic gate exits `0` with zero broken relative links and zero tracked `.agents/scratch/` files.
+- All `EXTRACT_NOTE` / `EXTRACT_RECORD` rows (and any falsified-theory extractions) land before any `ARCHIVE` / `DELETE` row or `docs/theory.md` rewrite executes.
+- Rebuilt current-state docs (and `docs/theory.md`, if enabled) pass `doc-verify` against authoritative code, tests, proofs/studies, or named owners.
+- Deterministic gate exits `0` with zero broken inline relative Markdown links checked by the baseline gate and zero tracked `.agents/scratch/` files (run `lychee` or a dedicated link check separately when angle-bracket links or external/published URLs matter).
 
 ## Risks
 
