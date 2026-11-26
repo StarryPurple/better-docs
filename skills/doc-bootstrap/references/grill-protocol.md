@@ -23,8 +23,9 @@ Use this protocol during `doc-bootstrap` to resolve ambiguity before writing con
 Surface only genuinely uncertain items in compact groups:
 1. **Ambiguous legacy docs**: quote file path, brief summary of buried facts, and ask `EXTRACT_NOTE` / `EXTRACT_RECORD` vs. `ARCHIVE` vs. `KEEP` vs. `DELETE`.
 2. **Mixed legacy theory & TODOs** (when `docs/theory.md` or `ROADMAP.md` is enabled): separate surviving working theory, falsified assumptions, shipped behavior, and unresolved claims at section/claim level; treat legacy `TODO.md` entries as unconfirmed candidates requiring fresh collaborator agreement before entering the roadmap seed.
-3. **Published URLs / external links**: ask whether any existing doc paths are published or linked externally (requiring redirects or stability).
-4. **Non-code authorities**: identify who or what owns operational procedures, support commitments, proofs, or experiment baselines that source code cannot verify.
+3. **Existing skill / consumer dependencies**: present confirmed repo-local skill/script dependencies (and ask about known global or out-of-scope consumers) whose required doc paths, headings, or schemas conflict with planned rewrites or moves; confirm whether to preserve the interface, defer the row, or approve a named consumer edit.
+4. **Published URLs / external links**: ask whether any existing doc paths are published or linked externally (requiring redirects or stability).
+5. **Non-code authorities**: identify who or what owns operational procedures, support commitments, proofs, or experiment baselines that source code cannot verify.
 
 ## Exit criterion
 

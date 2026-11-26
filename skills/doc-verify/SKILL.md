@@ -10,7 +10,7 @@ Verify finished prose against reality from a **fresh context** so the reviewer c
 ## Scope the run
 
 1. Confirm the target: a page, specific `##` sections, or a list of changed claims. If omitted, ask.
-2. Locate the target repo root, `AGENTS.md`, `docs/AGENTS.md`, and `docs-check.conf`.
+2. Locate the target repo root, `AGENTS.md`, `docs/AGENTS.md`, `docs-check.conf`, and any authoritative skill, script, or schema files linked from `docs/AGENTS.md` (or the target's `<subtree>/AGENTS.md`) for that target page.
 3. Split large pages into bounded review units (one `##` section or claim group per reviewer). For `docs/theory.md`, run **one whole-page consistency pass first** (symbol definitions, domains, assumption references, and epistemic-status header) before splitting into section units.
 
 ## Execution mode
@@ -26,11 +26,11 @@ Repo root: <ABSOLUTE_REPO_ROOT>
 
 Read first:
 1. <ABSOLUTE_REPO_ROOT>/AGENTS.md and <ABSOLUTE_REPO_ROOT>/docs/AGENTS.md (tier rules, fact-to-home map, language mode)
-2. <ABSOLUTE_REPO_ROOT>/docs-check.conf
+2. <ABSOLUTE_REPO_ROOT>/docs-check.conf (plus any linked interface-owner skill, script, or schema files for this target: <OWNER_PATHS_OR_NONE>)
 3. <TARGET_PAGE_PATH> — review only <SECTION_OR_CLAIM_LIST>; read surrounding sections for context only.
 
 Check in strict order:
-1. Facts: verify every command, flag, path, config key, default, exit code, and behavior claim against source code, tests, or primary citations. Re-run read-only terminal commands; run mutating commands only in an isolated scratch directory or verify against source/tests. For `docs/theory.md`, verify implementation claims against code/tests, verify research/theoretical claims against their stated proof, study, or primary source, accept accurately labeled open hypotheses, and flag unsupported claims explicitly. Flag any claim that cannot be verified and explain why.
+1. Facts: verify every command, flag, path, config key, default, exit code, and behavior claim against source code, tests, or primary citations. Re-run read-only terminal commands; run mutating commands only in an isolated scratch directory or verify against source/tests. For `docs/theory.md`, verify implementation claims against code/tests, verify research/theoretical claims against their stated proof, study, or primary source, accept accurately labeled open hypotheses, and flag unsupported claims explicitly. If linked interface-owner files were supplied, verify the target satisfies their declared path, heading, or schema requirements. Flag any claim that cannot be verified and explain why.
 2. Examples: verify every code fence, config snippet, and fixture matches current syntax and passes the repo's check gate or tests.
 3. Structure (fact-to-home): flag any passage that restates a topic owned by another tier/page, violates language_mode / surface_rule, or leaks unshipped plans into current-state docs. For `ROADMAP.md`, verify links resolve, flag multi-paragraph spec bloat, and under `i18n-en-zh` check that EN and ZH lines stay synchronized under shared checkboxes.
 4. Job fit: confirm the unit answers its stated lookup target directly, answer-first, with load-bearing facts on scan anchors.

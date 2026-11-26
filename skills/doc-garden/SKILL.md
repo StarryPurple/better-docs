@@ -13,6 +13,7 @@ Keep active documentation current, lean, and verified without deleting load-bear
 - Never edit `vendor/`, `node_modules/`, `.agents/notes/archived/`, already-concluded `.agents/records/<study-id>/`, or `submodule_shared=` / `submodule_external=` paths.
 - For `submodule_owned=` paths, garden, validate, commit, and verify push reachability inside the child repo first before updating parent gitlink pins.
 - Never archive toward a quota or by file age; judge every note semantically by future decision value.
+- Preserve any durable skill/script doc interfaces linked from `docs/AGENTS.md` (or an applicable `<subtree>/AGENTS.md`) across prose edits, note moves, consolidations, and deletions; report interface conflicts for the user or owner to resolve instead of auto-invoking companion skills or editing unapproved skill files.
 
 ## Maintenance passes
 
