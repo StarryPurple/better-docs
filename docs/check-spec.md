@@ -6,7 +6,7 @@ This document is the single authority for every deterministic check implemented 
 
 ### Baseline prerequisites (`gates/check-docs.sh`)
 - `bash` (>= 4.4)
-- POSIX `awk` and standard POSIX utilities (`sed -E`, `find`, `sort`, `tr`, `tail`, `od`, `dirname`, `mkdir`)
+- POSIX `awk` (portable across `mawk`, `gawk`, and BSD `awk` without `{m,n}` regex intervals) and standard POSIX utilities (`sed -E`, `find`, `sort`, `tr`, `tail`, `od`, `dirname`, `mkdir`)
 - `git` (required unless `--no-git` is passed; missing `git` without `--no-git` exits `2`. When `git` is installed and `--root` is not inside a git worktree, git-dependent checks are skipped unless `--ci` is passed.)
 - `sha256sum` or `shasum -a 256`
 
@@ -38,7 +38,7 @@ Line-oriented `key=value` file:
 - Blank lines and lines whose first non-whitespace character is `#` are ignored.
 - Inline comments (` # ...`) are stripped only when preceded by whitespace.
 - Leading/trailing whitespace around keys and values is trimmed.
-- Scalar keys use the last declaration; list keys (`surface_rule`, `grandfathered_note`, `subtree`, `submodule_owned`, `submodule_shared`, `submodule_external`, `budget`, `hook_required`, `hook_advisory`) reject empty values and append in declaration order.
+- Scalar keys use the last declaration; list keys (`surface_rule`, `grandfathered_note`, `exclude`, `subtree`, `submodule_owned`, `submodule_shared`, `submodule_external`, `budget`, `hook_required`, `hook_advisory`) reject empty values and append in declaration order.
 - All key syntax, normalized repo-relative paths (no leading `/`, trailing `/`, `//`, `.`, or `..` segments), and feature dependencies are validated unconditionally (`BD002`).
 
 | Key | Kind | Allowed values / format | Default |
@@ -53,8 +53,9 @@ Line-oriented `key=value` file:
 | `feature_budgets` | bool | `true`, `false` | `false` |
 | `note_classes` | csv | Non-empty comma-separated lowercase kebab-case class names (`[a-z0-9-]+`; no leading/trailing comma) | `feature,bug-fix,architecture,simplification,process,testing` |
 | `grandfathered_note` | list | Exact normalized repo-relative path to a pre-adoption note | empty |
+| `exclude` | list | Normalized repo-relative file path or directory prefix (no leading/trailing `/`, no `..`) skipped during active Markdown discovery (links, anchors, hygiene, draft markers, probes, i18n, and built-in hooks). Does not bypass `BD001` (tracked scratch), `BD002` (config), `BD003` (subtree), or `BD040`–`BD043` (archive seals). | empty |
 | `subtree` | list | Normalized repo-relative directory containing a subtree `AGENTS.md` | empty |
-| `submodule_owned` | list | `<path>\|<repo_id>\|<starting_sha>\|<scope>` (`<path>` normalized repo-relative) | empty |
+| `submodule_owned` | list | `<path>\|<repo_id>[|<scope>]` (`<path>` normalized repo-relative; legacy 4-field `<path>\|<repo_id>\|<starting_sha>\|<scope>` remains accepted for compatibility) | empty |
 | `submodule_shared` | list | Normalized repo-relative gitlink path (read-only) | empty |
 | `submodule_external` | list | Normalized repo-relative gitlink path (read-only) | empty |
 | `budget` | list | `<normalized-repo-relative-path>:<positive-int>` | empty |
@@ -68,7 +69,7 @@ Line-oriented `key=value` file:
 ### Tracked-file scope
 - In a git worktree (confirmed via `git rev-parse --is-inside-work-tree == true`, unless `--no-git`), active Markdown files are discovered via `git -c core.quotePath=false ls-files --cached --others --exclude-standard -- '*.md'` so non-ASCII/CJK filenames are preserved verbatim.
 - Outside git or with `--no-git`, scan `*.md` via `find`.
-- Both modes skip symlinks and exclude `vendor/`, `node_modules/`, `.git/`, `.agents/scratch/`, `.agents/notes/archived/`, and all declared submodule paths (and, in git mode, `.gitmodules` gitlink paths).
+- Both modes skip symlinks and exclude `vendor/`, `node_modules/`, `.git/`, `.agents/scratch/`, `.agents/notes/archived/`, all configured `exclude=` paths/prefixes, and all declared submodule paths (and, in git mode, `.gitmodules` gitlink paths).
 - **Default-closed gitlinks**: checking stops at every submodule boundary; in git mode, any gitlink in `.gitmodules` that is unlisted or uninitialized emits `BD903` unconditionally.
 
 ### Fenced-code and inline-code stripping

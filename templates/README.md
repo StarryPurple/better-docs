@@ -5,6 +5,7 @@
 ## Instantiation rules
 
 - Delete the entire line for any omitted `{{OPTIONAL_*}}` placeholder (never leave blank lines inside Markdown tables, tight bullet lists, or trailing blank lines at EOF).
+- Treat `core/AGENTS.md.tmpl` and `topology/subtree-AGENTS.md.tmpl` as scaffolding for missing files or sections: when an existing `AGENTS.md` or live subtree `**/AGENTS.md` already carries host commands, architecture links, or directory conventions, merge idempotently without overwriting unrelated sections.
 - Leave one blank line before an injected `###` or `##` section (such as `{{OPTIONAL_I18N_RULES}}`, `{{OPTIONAL_SUBMODULES_SECTION}}`, `{{OPTIONAL_THEORY_TRIAGE_SECTION}}`, or `{{OPTIONAL_ROADMAP_SEED_SECTION}}`).
 - For `ROADMAP.md.tmpl`, render zero or more confirmed task lines in `{{OPTIONAL_ACTIVE_TASKS}}` / `{{OPTIONAL_UP_NEXT_TASKS}}` (an empty board is valid; include `— @owner` and `[spec](path)` only when supplied).
 - For `theory.md.tmpl`, bind `{{THEORY_EVIDENCE_DESTINATION}}` to a destination valid under the repo's enabled features (never cite `.agents/notes/concluded/` when `feature_empirical_records=false`, or `.agents/notes/` when `feature_notes=false`).

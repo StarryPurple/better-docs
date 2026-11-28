@@ -37,22 +37,64 @@ EOF
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --root)
-      [[ $# -ge 2 ]] || { echo "check-docs.sh: --root requires an argument" >&2; exit 2; }
-      ROOT="$2"; shift 2 ;;
+      [[ $# -ge 2 ]] || {
+        echo "check-docs.sh: --root requires an argument" >&2
+        exit 2
+      }
+      ROOT="$2"
+      shift 2
+      ;;
     --config)
-      [[ $# -ge 2 ]] || { echo "check-docs.sh: --config requires an argument" >&2; exit 2; }
-      CONFIG_PATH="$2"; CONFIG_SET=1; shift 2 ;;
-    --ci) CI_MODE=1; shift ;;
+      [[ $# -ge 2 ]] || {
+        echo "check-docs.sh: --config requires an argument" >&2
+        exit 2
+      }
+      CONFIG_PATH="$2"
+      CONFIG_SET=1
+      shift 2
+      ;;
+    --ci)
+      CI_MODE=1
+      shift
+      ;;
     --base-ref)
-      [[ $# -ge 2 ]] || { echo "check-docs.sh: --base-ref requires an argument" >&2; exit 2; }
-      BASE_REF="$2"; BASE_REF_SET=1; shift 2 ;;
-    --seal) SEAL_MODE=1; shift ;;
-    --probes) PROBES_MODE=1; shift ;;
-    --list-budgets) LIST_BUDGETS=1; shift ;;
-    --no-git) NO_GIT=1; shift ;;
-    --version) printf '%s\n' "$KIT_VERSION_BUILT"; exit 0 ;;
-    -h|--help) usage; exit 0 ;;
-    *) echo "check-docs.sh: unknown option: $1" >&2; usage >&2; exit 2 ;;
+      [[ $# -ge 2 ]] || {
+        echo "check-docs.sh: --base-ref requires an argument" >&2
+        exit 2
+      }
+      BASE_REF="$2"
+      BASE_REF_SET=1
+      shift 2
+      ;;
+    --seal)
+      SEAL_MODE=1
+      shift
+      ;;
+    --probes)
+      PROBES_MODE=1
+      shift
+      ;;
+    --list-budgets)
+      LIST_BUDGETS=1
+      shift
+      ;;
+    --no-git)
+      NO_GIT=1
+      shift
+      ;;
+    --version)
+      printf '%s\n' "$KIT_VERSION_BUILT"
+      exit 0
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "check-docs.sh: unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
   esac
 done
 
@@ -109,9 +151,9 @@ fi
 hash_file() {
   local f="$1"
   if [[ "$SHA_CMD" == "sha256sum" ]]; then
-    sha256sum < "$f" | awk '{print $1}'
+    sha256sum <"$f" | awk '{print $1}'
   else
-    shasum -a 256 < "$f" | awk '{print $1}'
+    shasum -a 256 <"$f" | awk '{print $1}'
   fi
 }
 
@@ -178,6 +220,7 @@ NOTE_CLASSES="feature,bug-fix,architecture,simplification,process,testing"
 
 declare -a SURFACE_RULES=()
 declare -a GRANDFATHERED_NOTES=()
+declare -a EXCLUDES=()
 declare -a SUBTREES=()
 declare -a SUBMODULE_OWNED=()
 declare -a SUBMODULE_SHARED=()
@@ -209,31 +252,43 @@ while IFS= read -r raw_line || [[ -n "$raw_line" ]]; do
     language_mode) LANGUAGE_MODE="$val" ;;
     language_primary) LANGUAGE_PRIMARY="$val" ;;
     surface_rule)
-      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "surface_rule must not be empty"; else SURFACE_RULES+=("$val"); fi ;;
+      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "surface_rule must not be empty"; else SURFACE_RULES+=("$val"); fi
+      ;;
     feature_notes) FEATURE_NOTES="$val" ;;
     feature_empirical_records) FEATURE_EMPIRICAL_RECORDS="$val" ;;
     feature_archive_seal) FEATURE_ARCHIVE_SEAL="$val" ;;
     feature_budgets) FEATURE_BUDGETS="$val" ;;
     note_classes) NOTE_CLASSES="$val" ;;
     grandfathered_note)
-      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "grandfathered_note must not be empty"; else GRANDFATHERED_NOTES+=("$val"); fi ;;
+      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "grandfathered_note must not be empty"; else GRANDFATHERED_NOTES+=("$val"); fi
+      ;;
+    exclude)
+      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "exclude must not be empty"; else EXCLUDES+=("$val"); fi
+      ;;
     subtree)
-      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "subtree must not be empty"; else SUBTREES+=("$val"); fi ;;
+      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "subtree must not be empty"; else SUBTREES+=("$val"); fi
+      ;;
     submodule_owned)
-      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "submodule_owned must not be empty"; else SUBMODULE_OWNED+=("$val"); fi ;;
+      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "submodule_owned must not be empty"; else SUBMODULE_OWNED+=("$val"); fi
+      ;;
     submodule_shared)
-      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "submodule_shared must not be empty"; else SUBMODULE_SHARED+=("$val"); fi ;;
+      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "submodule_shared must not be empty"; else SUBMODULE_SHARED+=("$val"); fi
+      ;;
     submodule_external)
-      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "submodule_external must not be empty"; else SUBMODULE_EXTERNAL+=("$val"); fi ;;
+      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "submodule_external must not be empty"; else SUBMODULE_EXTERNAL+=("$val"); fi
+      ;;
     budget)
-      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "budget must not be empty"; else BUDGETS+=("$val"); fi ;;
+      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "budget must not be empty"; else BUDGETS+=("$val"); fi
+      ;;
     hook_required)
-      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "hook_required must not be empty"; else HOOKS_REQUIRED+=("$val"); fi ;;
+      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "hook_required must not be empty"; else HOOKS_REQUIRED+=("$val"); fi
+      ;;
     hook_advisory)
-      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "hook_advisory must not be empty"; else HOOKS_ADVISORY+=("$val"); fi ;;
+      if [[ -z "$val" ]]; then fail "BD002" "$CONFIG_DISPLAY:$line_no" "hook_advisory must not be empty"; else HOOKS_ADVISORY+=("$val"); fi
+      ;;
     *) fail "BD002" "$CONFIG_DISPLAY:$line_no" "unknown config key '$key'" ;;
   esac
-done < "$CONFIG_PATH"
+done <"$CONFIG_PATH"
 
 is_bool() { [[ "$1" == "true" || "$1" == "false" ]]; }
 
@@ -243,11 +298,11 @@ elif [[ ! "$KIT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
   fail "BD002" "$CONFIG_DISPLAY" "invalid kit_version '$KIT_VERSION' (expected semver e.g. 0.1.0)"
 fi
 case "$LANGUAGE_MODE" in
-  single-en|single-zh|split-by-surface|i18n-en-zh) ;;
+  single-en | single-zh | split-by-surface | i18n-en-zh) ;;
   *) fail "BD002" "$CONFIG_DISPLAY" "invalid language_mode '$LANGUAGE_MODE'" ;;
 esac
 case "$LANGUAGE_PRIMARY" in
-  en|zh) ;;
+  en | zh) ;;
   *) fail "BD002" "$CONFIG_DISPLAY" "invalid language_primary '$LANGUAGE_PRIMARY'" ;;
 esac
 is_bool "$FEATURE_NOTES" || fail "BD002" "$CONFIG_DISPLAY" "feature_notes must be true or false"
@@ -267,7 +322,7 @@ declare -A ALLOWED_CLASSES=()
 if [[ -z "$NOTE_CLASSES" || "$NOTE_CLASSES" == ,* || "$NOTE_CLASSES" == *, ]]; then
   fail "BD002" "$CONFIG_DISPLAY" "invalid note_classes '$NOTE_CLASSES' (expected non-empty comma-separated lowercase kebab-case)"
 else
-  IFS=',' read -ra _cls_arr <<< "$NOTE_CLASSES"
+  IFS=',' read -ra _cls_arr <<<"$NOTE_CLASSES"
   for c in "${_cls_arr[@]}"; do
     c="$(printf '%s' "$c" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
     if [[ -z "$c" || ! "$c" =~ ^[a-z0-9-]+$ ]]; then
@@ -290,9 +345,15 @@ for gf in "${GRANDFATHERED_NOTES[@]}"; do
   fi
 done
 
+for ex in "${EXCLUDES[@]}"; do
+  if ! is_safe_rel_path "$ex"; then
+    fail "BD002" "$CONFIG_DISPLAY" "invalid exclude path '$ex' (expected normalized repo-relative path or directory prefix without trailing '/')"
+  fi
+done
+
 for entry in "${SUBMODULE_OWNED[@]}"; do
-  if [[ ! "$entry" =~ ^[^|]+\|[^|]+\|[^|]+\|[^|]+$ ]]; then
-    fail "BD002" "$CONFIG_DISPLAY" "invalid submodule_owned '$entry' (expected <path>|<repo_id>|<starting_sha>|<scope>)"
+  if [[ ! "$entry" =~ ^[^|]+\|[^|]+(\|[^|]+(\|[^|]+)?)?$ ]]; then
+    fail "BD002" "$CONFIG_DISPLAY" "invalid submodule_owned '$entry' (expected <path>|<repo_id>[|<scope>] or legacy 4-field format)"
   else
     sub_p="${entry%%|*}"
     if ! is_safe_rel_path "$sub_p"; then
@@ -414,8 +475,13 @@ fi
 is_excluded_path() {
   local p="$1"
   case "$p" in
-    vendor/*|node_modules/*|.git/*|.agents/scratch/*|.agents/notes/archived/*) return 0 ;;
+    vendor/* | node_modules/* | .git/* | .agents/scratch/* | .agents/notes/archived/*) return 0 ;;
   esac
+  for ex in "${EXCLUDES[@]}"; do
+    if [[ "$p" == "$ex" || "$p" == "$ex/"* ]]; then
+      return 0
+    fi
+  done
   for gp in "${!GITLINK_PATHS[@]}"; do
     if [[ "$p" == "$gp" || "$p" == "$gp/"* ]]; then
       return 0
@@ -459,7 +525,7 @@ if [[ "$FEATURE_EMPIRICAL_RECORDS" == "true" && -d "$ROOT/.agents/records" && ! 
     [[ -z "$study_readme" ]] && continue
     line3="$(sed -n '3p' "$study_readme" | tr -d '\r')"
     if [[ "$line3" == "Status: concluded" ]]; then
-      CONCLUDED_STUDY_DIRS["${study_dir#$ROOT/}"]=1
+      CONCLUDED_STUDY_DIRS["${study_dir#"$ROOT"/}"]=1
     fi
   done
 fi
@@ -525,10 +591,10 @@ if [[ "$FEATURE_BUDGETS" == "true" || "$LIST_BUDGETS" -eq 1 ]]; then
     b_actual="$(count_tokens "$ROOT/$b_path")"
     if [[ "$LIST_BUDGETS" -eq 1 ]]; then
       status_lbl="ok  "
-      (( b_actual > b_max )) && status_lbl="OVER"
+      ((b_actual > b_max)) && status_lbl="OVER"
       printf '%s  %6d / %-6d %s\n' "$status_lbl" "$b_actual" "$b_max" "$b_path"
     fi
-    if [[ "$FEATURE_BUDGETS" == "true" ]] && (( b_actual > b_max )); then
+    if [[ "$FEATURE_BUDGETS" == "true" ]] && ((b_actual > b_max)); then
       fail "BD010" "$b_path" "$b_actual tokens exceeds ceiling of $b_max (relocate, condense, or justify raise)"
     fi
   done
@@ -539,7 +605,7 @@ fi
 # ---------------------------------------------------------------------------
 read -r -d '' AWK_CM_HELPERS <<'AWK_EOF' || true
 function check_fence(line,    m, fc, fl, rest) {
-  if (match(line, /^[ ]{0,3}(`{3,}|~{3,})/)) {
+  if (match(line, /^ ? ? ?(```+|~~~+)/)) {
     m = substr(line, RSTART, RLENGTH)
     sub(/^[ ]+/, "", m)
     fc = substr(m, 1, 1)
@@ -610,9 +676,9 @@ extract_anchors() {
       sub(/\r$/, "", line)
       if (check_fence(line)) next
       if (in_fence) next
-      if (line ~ /^#{1,6}[ \t]+/) {
+      if (line ~ /^##?#?#?#?#?[ \t]+/) {
         h = line
-        sub(/^#{1,6}[ \t]+/, "", h)
+        sub(/^##?#?#?#?#?[ \t]+/, "", h)
         sub(/[ \t]+#+[ \t]*$/, "", h)
         while (match(h, /\[[^\]]*\]\([^)]*\)/)) {
           seg = substr(h, RSTART, RLENGTH)
@@ -711,7 +777,7 @@ for rel_file in "${ACTIVE_MD_FILES[@]}"; do
     [[ -z "$raw_target" ]] && continue
     target="$(printf '%s' "$raw_target" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+("[^"]*"|'\''[^'\'']*'\'')[[:space:]]*$//; s/[[:space:]]+$//')"
     case "$target" in
-      ""|"#"|http://*|https://*|mailto:*|tel:*|data:*|file://*|"<"*) continue ;;
+      "" | "#" | http://* | https://* | mailto:* | tel:* | data:* | file://* | "<"*) continue ;;
     esac
     if [[ "$target" == *"{{"* ]]; then continue; fi
 
@@ -809,7 +875,7 @@ if [[ "$FEATURE_NOTES" == "true" ]]; then
   for rel_file in "${ACTIVE_MD_FILES[@]}"; do
     [[ "$rel_file" != .agents/notes/* ]] && continue
     case "$rel_file" in
-      .agents/notes/README.md|.agents/notes/README.zh.md|.agents/notes/AGENTS.md|.agents/notes/*/AGENTS.md) continue ;;
+      .agents/notes/README.md | .agents/notes/README.zh.md | .agents/notes/AGENTS.md | .agents/notes/*/AGENTS.md) continue ;;
     esac
     if [[ "$LANGUAGE_MODE" == "i18n-en-zh" && "$rel_file" == *.zh.md ]]; then
       continue
@@ -919,13 +985,13 @@ if [[ "$FEATURE_ARCHIVE_SEAL" == "true" ]]; then
   elif [[ -d "$ARCHIVE_DIR" ]]; then
     while IFS= read -r entry; do
       [[ -z "$entry" ]] && continue
-      rel="${entry#$ROOT/}"
+      rel="${entry#"$ROOT"/}"
       if [[ -L "$entry" ]]; then
         fail "BD043" "$rel" "symlinks are forbidden inside sealed archive scope"
         continue
       fi
       case "$rel" in
-        .agents/notes/archived/AGENTS.md|"$MANIFEST_REL") continue ;;
+        .agents/notes/archived/AGENTS.md | "$MANIFEST_REL") continue ;;
         .agents/notes/archived/.manifest.sha256.tmp.*)
           sub_tmp="${rel#.agents/notes/archived/.manifest.sha256.tmp.}"
           [[ "$sub_tmp" != */* ]] && continue
@@ -941,13 +1007,13 @@ if [[ "$FEATURE_ARCHIVE_SEAL" == "true" ]]; then
     elif [[ -d "$ROOT/.agents/records" ]]; then
       # Reject every symlink anywhere under .agents/records/
       while IFS= read -r lentry; do
-        [[ -n "$lentry" ]] && fail "BD043" "${lentry#$ROOT/}" "symlinks are forbidden inside .agents/records/ scope"
+        [[ -n "$lentry" ]] && fail "BD043" "${lentry#"$ROOT"/}" "symlinks are forbidden inside .agents/records/ scope"
       done < <(find "$ROOT/.agents/records" -mindepth 1 -type l | LC_ALL=C sort)
 
       for study_rel in "${!CONCLUDED_STUDY_DIRS[@]}"; do
         while IFS= read -r entry; do
           [[ -z "$entry" ]] && continue
-          rel="${entry#$ROOT/}"
+          rel="${entry#"$ROOT"/}"
           [[ -f "$entry" && ! -L "$entry" ]] && DISK_SEALED["$rel"]="$(hash_file "$entry")"
         done < <(find "$ROOT/$study_rel" -mindepth 1 -type f | LC_ALL=C sort)
       done
@@ -981,7 +1047,7 @@ if [[ "$FEATURE_ARCHIVE_SEAL" == "true" ]]; then
         continue
       fi
       CUR_MANIFEST["$mpath"]="$mhash"
-    done < "$MANIFEST_ABS"
+    done <"$MANIFEST_ABS"
   elif [[ "$SEAL_MODE" -eq 0 ]]; then
     fail "BD040" "$MANIFEST_REL" "missing archive manifest (run --seal to initialize)"
   fi
@@ -1016,7 +1082,7 @@ if [[ "$FEATURE_ARCHIVE_SEAL" == "true" ]]; then
 
   if [[ "$SEAL_MODE" -eq 1 ]]; then
     if [[ "$BASE_REF_FAILED" -eq 0 && "$FAILURES" -eq "$seal_pre_failures" ]]; then
-      if [[ -L "$MANIFEST_ABS" || ( -e "$MANIFEST_ABS" && ! -f "$MANIFEST_ABS" ) ]]; then
+      if [[ -L "$MANIFEST_ABS" || (-e "$MANIFEST_ABS" && ! -f "$MANIFEST_ABS") ]]; then
         fail "BD043" "$MANIFEST_REL" "archive manifest destination must be a regular file"
       elif ! mkdir -p "$ARCHIVE_DIR" 2>/dev/null; then
         fail "BD040" "$MANIFEST_REL" "failed to create archive directory '.agents/notes/archived'"
@@ -1027,7 +1093,7 @@ if [[ "$FEATURE_ARCHIVE_SEAL" == "true" ]]; then
           for sp in "${!DISK_SEALED[@]}"; do
             printf '%s  %s\n' "${DISK_SEALED[$sp]}" "$sp"
           done
-        } | LC_ALL=C sort -k1.67 > "$tmp_manifest" 2>/dev/null; then
+        } | LC_ALL=C sort -k1.67 >"$tmp_manifest" 2>/dev/null; then
           if mv --help 2>&1 | grep -Fq -- '--no-target-directory'; then
             mv -T -f "$tmp_manifest" "$MANIFEST_ABS" 2>/dev/null && [[ -f "$MANIFEST_ABS" && ! -L "$MANIFEST_ABS" ]] && seal_replaced=1
           else
@@ -1092,7 +1158,7 @@ if [[ "$LANGUAGE_MODE" == "i18n-en-zh" ]]; then
 
   for rel_file in "${ACTIVE_MD_FILES[@]}"; do
     case "$rel_file" in
-      *.zh.md|AGENTS.md|CLAUDE.md|*/AGENTS.md|*/CLAUDE.md|ROADMAP.md|.agents/skills/*) continue ;;
+      *.zh.md | AGENTS.md | CLAUDE.md | */AGENTS.md | */CLAUDE.md | ROADMAP.md | .agents/skills/*) continue ;;
     esac
     stem="${rel_file%.md}"
     zh_rel="${stem}.zh.md"
@@ -1150,7 +1216,7 @@ is_concluded_record_file() {
 if [[ "$PROBES_MODE" -eq 1 ]]; then
   for rel_file in "${ACTIVE_MD_FILES[@]}"; do
     case "$rel_file" in
-      skills/prose-standard/references/*|.agents/skills/prose-standard/references/*) continue ;;
+      skills/prose-standard/references/* | .agents/skills/prose-standard/references/*) continue ;;
     esac
     is_concluded_record_file "$rel_file" && continue
     while IFS=$'\t' read -r lno hit; do
@@ -1208,7 +1274,7 @@ escape_lychee_glob() {
       '?') out+='[?]' ;;
       '[') out+='[[]' ;;
       ']') out+='[]]' ;;
-      *)   out+="$ch" ;;
+      *) out+="$ch" ;;
     esac
   done
   printf '%s' "$out"
@@ -1219,7 +1285,7 @@ VALE_FILES=()
 for rel_file in "${ACTIVE_MD_FILES[@]}"; do
   LYCHEE_FILES+=("$(escape_lychee_glob "$ROOT/$rel_file")")
   case "$rel_file" in
-    skills/prose-standard/references/*|.agents/skills/prose-standard/references/*) continue ;;
+    skills/prose-standard/references/* | .agents/skills/prose-standard/references/*) continue ;;
   esac
   is_concluded_record_file "$rel_file" && continue
   VALE_FILES+=("$ROOT/$rel_file")
@@ -1269,13 +1335,13 @@ invoke_hook() {
         return
       fi
       [[ "${#VALE_FILES[@]}" -eq 0 ]] && return
-      hook_out="$((cd "$ROOT" && vale --config "$cfg" --output=line "${VALE_FILES[@]}") 2>&1)" || rc=$?
+      hook_out="$( (cd "$ROOT" && vale --config "$cfg" --output=line "${VALE_FILES[@]}") 2>&1)" || rc=$?
       if [[ -n "$hook_out" ]]; then
         while IFS= read -r hline; do
           [[ -z "$hline" ]] && continue
           hline="${hline#"$ROOT/"}"
           advise "BD902" "vale" "$hline"
-        done <<< "$hook_out"
+        done <<<"$hook_out"
       fi
       if [[ "$rc" -ne 0 ]]; then
         if [[ "$mode" == "required" ]]; then

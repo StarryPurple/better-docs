@@ -1226,5 +1226,113 @@ else
   printf 'FAIL  %s\n' "seal_race_did_not_write_into_manifest_directory"
 fi
 
+# ---------------------------------------------------------------------------
+# Case 16: Glob metacharacters in --root path during sealing and concluded records
+# ---------------------------------------------------------------------------
+R22="$TMP_BASE/root[glob]"
+init_repo "$R22"
+mkdir -p "$R22/.agents/notes/archived/architecture" "$R22/.agents/records/2026-11-done"
+cat > "$R22/docs-check.conf" <<'EOF'
+kit_version=0.1.0
+feature_notes=true
+feature_empirical_records=true
+feature_archive_seal=true
+EOF
+printf '# Archived\n' > "$R22/.agents/notes/archived/architecture/2026-01-01-a.md"
+cat > "$R22/.agents/records/2026-11-done/README.md" <<'EOF'
+# Study: Glob Root
+
+Status: concluded
+
+Results verified.
+EOF
+assert_pass "pass_glob_root_seal" "$GATE" --root "$R22" --seal
+commit_all "$R22" "sealed archive and concluded record under glob root"
+assert_pass "pass_glob_root_verify" "$GATE" --root "$R22"
+if grep -Eq '^[0-9a-f]{64}  \.agents/notes/archived/architecture/2026-01-01-a\.md$' "$R22/.agents/notes/archived/manifest.sha256" \
+  && grep -Eq '^[0-9a-f]{64}  \.agents/records/2026-11-done/README\.md$' "$R22/.agents/notes/archived/manifest.sha256"; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+  printf 'PASS  %s\n' "pass_glob_root_manifest_relative_paths"
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  printf 'FAIL  %s\n' "pass_glob_root_manifest_relative_paths"
+fi
+
+# Glob-root symlink inside .agents/records/ reports exact repo-relative path (BD043)
+R22S="$TMP_BASE/root[glob]-sym"
+init_repo "$R22S"
+mkdir -p "$R22S/.agents/notes/archived" "$R22S/.agents/records/2026-11-s"
+cat > "$R22S/docs-check.conf" <<'EOF'
+kit_version=0.1.0
+feature_notes=true
+feature_empirical_records=true
+feature_archive_seal=true
+EOF
+printf '# Target\n' > "$R22S/target.md"
+ln -s "$R22S/target.md" "$R22S/.agents/records/2026-11-s/link.md"
+assert_fail_with "fail_glob_root_records_symlink_bd043" "BD043 .agents/records/2026-11-s/link.md" \
+  "$GATE" --root "$R22S" --seal
+
+# Portable AWK parser boundaries: 4-space indented backticks do not open a fence; 7 hashes is not an ATX heading
+R22B="$TMP_BASE/awk_boundaries"
+init_repo "$R22B"
+cat > "$R22B/docs-check.conf" <<'EOF'
+kit_version=0.1.0
+EOF
+cat > "$R22B/README.md" <<'EOF'
+# Valid Heading
+
+    ```
+See [broken-after-4space](missing-4space.md) and [not-h7](#seven-hashes).
+
+####### Seven Hashes
+EOF
+commit_all "$R22B" "awk boundary fixture"
+assert_fail_with "fail_4space_not_fence_bd020" "missing-4space.md" "$GATE" --root "$R22B"
+assert_fail_with "fail_7hash_not_heading_bd021" "BD021" "$GATE" --root "$R22B"
+
+# ---------------------------------------------------------------------------
+# Case 17: Generic exclude= paths/prefixes and simplified submodule_owned=
+# ---------------------------------------------------------------------------
+R23="$TMP_BASE/exclude_and_submodule_owned"
+init_repo "$R23"
+mkdir -p "$R23/third_party/lib" "$R23/generated" "$R23/.agents/notes/archived/architecture"
+cat > "$R23/docs-check.conf" <<'EOF'
+kit_version=0.1.0
+feature_notes=true
+feature_archive_seal=true
+exclude=third_party
+exclude=generated/auto.md
+submodule_owned=libs/mod-a|git@github.com:org/mod-a.git
+submodule_owned=libs/mod-b|git@github.com:org/mod-b.git|docs,notes
+submodule_owned=libs/mod-c|git@github.com:org/mod-c.git|deadbeef|docs,notes
+EOF
+printf '# Clean\n' > "$R23/README.md"
+printf '# Broken third party\n\n[broken](missing.md)   \n' > "$R23/third_party/lib/guide.md"
+printf '# Broken generated\n\n[broken](missing.md)\n' > "$R23/generated/auto.md"
+printf '# Archived\n' > "$R23/.agents/notes/archived/architecture/2026-01-01-a.md"
+"$GATE" --root "$R23" --seal >/dev/null
+commit_all "$R23" "exclude and submodule_owned formats"
+assert_pass "pass_exclude_skips_matching_dir_and_file" "$GATE" --root "$R23"
+
+# exclude= must NOT bypass BD042 archive seal or BD001 tracked scratch
+printf '# Tampered\n' >> "$R23/.agents/notes/archived/architecture/2026-01-01-a.md"
+assert_fail_with "fail_exclude_does_not_bypass_seal_bd042" "BD042" "$GATE" --root "$R23"
+git -C "$R23" checkout -- .agents/notes/archived/architecture/2026-01-01-a.md
+mkdir -p "$R23/.agents/scratch"
+printf 'temp\n' > "$R23/.agents/scratch/note.md"
+git -C "$R23" add -f .agents/scratch/note.md
+printf 'exclude=.agents/scratch\n' >> "$R23/docs-check.conf"
+assert_fail_with "fail_exclude_does_not_bypass_bd001" "BD001" "$GATE" --root "$R23"
+
+# Invalid exclude= path fails BD002
+R23BAD="$TMP_BASE/exclude_invalid"
+init_repo "$R23BAD"
+cat > "$R23BAD/docs-check.conf" <<'EOF'
+kit_version=0.1.0
+exclude=third_party/
+EOF
+assert_fail_with "fail_exclude_trailing_slash_bd002" "BD002" "$GATE" --root "$R23BAD"
+
 printf '\nConformance summary: %d passed, %d failed\n' "$PASS_COUNT" "$FAIL_COUNT"
 [[ "$FAIL_COUNT" -eq 0 ]]

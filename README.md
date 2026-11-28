@@ -2,6 +2,11 @@
 
 Portable documentation governance for AI-assisted repositories: a fixed five-skill kit, composable per-repo contracts, and a deterministic check gate.
 
+## When to use / When to skip
+
+- **Use when**: multiple humans or AI sessions maintain the repo, docs are drifting or duplicating facts, you need to separate current-state docs from durable decisions/empirical records, or you manage bilingual (`i18n-en-zh`) or submodule documentation.
+- **Skip when**: a single `README.md` covers the project, or the folder is a throwaway script or unconverged exploration draft.
+
 ## What this repo ships
 
 - **`skills/`**: Five cross-agent skills (`.agents/skills/` standard) for bootstrapping, brownfield migration, EN/ZH anti-slop prose, ongoing gardening, and fresh-context verification.
@@ -23,13 +28,8 @@ git clone git@github.com:StarryPurple/better-docs.git "$HOME/.local/share/better
 2. **Link the five skills globally**, then open a new agent session:
 
 ```sh
-KIT="$HOME/.local/share/better-docs"
-mkdir -p "$HOME/.agents/skills"
-for s in doc-bootstrap doc-migrate prose-standard doc-garden doc-verify; do
-  ln -sfn "$KIT/skills/$s" "$HOME/.agents/skills/$s"
-done
-
-# Optional: if your agent runtime scans a separate global skills root (e.g., Antigravity uses "$HOME/.gemini/config/skills"), symlink into that directory as well.
+"$HOME/.local/share/better-docs/install.sh"
+# Options: --mode dev (link current checkout), --claude, --codex, --uninstall
 ```
 
 3. **Use inside a target repository**:
